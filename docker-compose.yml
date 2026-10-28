@@ -1,0 +1,60 @@
+name: pareja-web-demo
+
+services:
+  pareja-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: backend
+      additional_contexts:
+        - deploy=./deploy
+    image: pareja-backend:latest
+    container_name: pareja-backend
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - EDIT_TOKEN=${EDIT_TOKEN}
+      - DB_PATH=/data/app.db
+      - UPLOAD_DIR=/uploads
+      - MAX_UPLOAD_BYTES=26214400
+    volumes:
+      - pareja_data:/data
+      - pareja_uploads:/uploads
+    networks:
+      - pareja-network
+    healthcheck:
+      test: ["CMD", "bun", "-e", "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
+
+  pareja-frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: frontend
+      additional_contexts:
+        - deploy=./deploy
+    image: pareja-frontend:latest
+    container_name: pareja-frontend
+    restart: unless-stopped
+    depends_on:
+      pareja-backend:
+        condition: service_healthy
+    volumes:
+      - pareja_uploads:/uploads:ro
+    networks:
+      - pareja-network
+    logging:
+      driver: json-file
+      options: { max-size: "5m", max-file: "3" }
+
+volumes:
+  pareja_data:
+  pareja_uploads:
+
+networks:
+  pareja-network: {}

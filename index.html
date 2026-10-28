@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="es" class="dark scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+
+    <!-- ponytail: viewport-fit=cover is REQUIRED for notched iPhones to render
+         edge-to-edge in standalone (PWA) mode. Without it Safari letterboxes
+         the content in landscape with white bars. Do not remove. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <title>Amor ∞</title>
+
+    <meta name="description" content="Una experiencia narrativa e interactiva para revivir nuestros mejores momentos juntos mes a mes." />
+
+    <!-- PWA: Chrome / Edge / Android -->
+    <meta name="theme-color" content="#0a060d" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- PWA: iOS Safari (web clip). Apple does NOT read manifest.json — it only
+         reads these meta tags. apple-mobile-web-app-capable triggers standalone
+         mode. apple-mobile-web-app-title overrides the <title> on the home-screen
+         icon label (kept short — iOS has a ~12-char visual limit on labels).
+         apple-mobile-web-app-status-bar-style is intentionally OMITTED: combining
+         it with viewport-fit=cover triggers a known WebKit chin-gap bug. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Amor" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Social shares stay consistent with the install app name. -->
+    <meta property="og:title" content="Love story" />
+    <meta property="og:description" content="Una experiencia narrativa e interactiva para revivir nuestros mejores momentos juntos mes a mes." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Love story" />
+  </head>
+  <body class="bg-[#0a060d] text-[#fdf2f4] font-sans antialiased selection:bg-[#ff85a1]/35 selection:text-[#ffe5ec] overflow-x-hidden">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "name": "Nuestro Álbum — Demo",
+  "description": "Una experiencia narrativa e interactiva para revivir nuestros mejores momentos juntos mes a mes.",
+  "author": "Alex",
+  "version": "1.0.0",
+  "for": "Sam",
+  "private": true,
+  "madeBy": "a mano, con mucho amor",
+  "createdAt": "2026-01-01",
+  "requestFramePermissions": []
+}
