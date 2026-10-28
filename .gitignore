@@ -1,0 +1,17 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Local agent/tool caches
+.ponytail/
+.worktrees/
+
+# Server runtime artifacts (when deployed)
+data/*.db
+data/*.db-journal
+uploads/
