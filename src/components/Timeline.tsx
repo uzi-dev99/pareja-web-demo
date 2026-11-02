@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { timelineEvents, photos } from '../data/content';
 import { Photo, TimelineEvent } from '../types';
-import { TimelineCarousel } from './TimelineCarousel';
+import { MonthCard, MonthCardsCylinder, TimelineCarousel } from './TimelineCarousel';
 import { usePhotos } from '../hooks/usePhotos';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { AddMemoryModal } from './AddMemoryModal';
@@ -150,6 +150,31 @@ export const Timeline: React.FC<TimelineProps> = ({
   // muestran.
   const { visible: visibleEvents, months } = visibleTimeline(uniqueTimelineEvents, visibleMonths);
 
+  // ponytail: the 3D cylinder is the album overview — one card per month
+  // recap: the month's photo and title in front, its memory in the back.
+  // The cover comes from the same sources as the list below (server
+  // carousel override, static images, single photo).
+  const monthCards: MonthCard[] = uniqueTimelineEvents
+    .filter((ev) => ev.kind === 'month')
+    .map((ev) => {
+      const override = carouselOverrides[ev.monthAnchor] ?? [];
+      const staticImages = ev.images ?? [];
+      const single = ev.imageId ? photos.find((p) => p.id === ev.imageId) : undefined;
+      const media = [
+        ...override.map((p) => ({ url: p.thumbnailUrl || p.filePath, isVideo: p.mediaType === 'video' })),
+        ...staticImages.map((img) => ({ url: img.url, isVideo: img.mediaType === 'video' })),
+        ...(single ? [{ url: single.thumbnailUrl || single.filePath, isVideo: single.mediaType === 'video' }] : [])
+      ];
+      return {
+        id: ev.id,
+        month: ev.month,
+        year: ev.year,
+        title: ev.title,
+        text: ev.text,
+        photos: media
+      };
+    });
+
   return (
     <section
       id="timeline"
@@ -204,6 +229,12 @@ export const Timeline: React.FC<TimelineProps> = ({
           )}
         </AnimatePresence>
       </div>
+
+      {/* 3D month-card cylinder (PWD-497) */}
+      <MonthCardsCylinder cards={monthCards} />
+      <p className="mb-12 text-center text-xs text-[#fcd5df]/60">
+        Mové el mouse o deslizá para recorrer los meses
+      </p>
 
       {/* Central Illuminated Progress Line & Wide Two-Column Spread */}
       <div className="relative">
