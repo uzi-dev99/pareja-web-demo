@@ -12,6 +12,7 @@ import { TimeCounter } from './components/TimeCounter';
 import { Timeline } from './components/Timeline';
 import { Gallery } from './components/Gallery';
 import { Footer } from './components/Footer';
+import { CtaSection } from './components/CtaSection';
 import { SecretCollageModal } from './components/SecretCollageModal';
 import { MusicLibraryModal } from './components/MusicLibraryModal';
 import { CustomCursor } from './components/CustomCursor';
@@ -194,9 +195,11 @@ export default function App() {
         onOpenMusicLibrary={() => setMusicLibraryOpen(true)}
       />
 
-      {/* 7. Footer & Secret Easter Egg Trigger */}
+      {/* 7. Closing CTA (cinematic, HLS background) */}
+      <CtaSection onOpenSecretModal={() => setSecretModalOpen(true)} />
+
+      {/* 8. Footer bar & Secret Easter Egg Trigger */}
       <Footer
-        onOpenSecretModal={() => setSecretModalOpen(true)}
         onHeartClick={handleHeartClick}
         heartClickCount={heartTapCount}
       />
