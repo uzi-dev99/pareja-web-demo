@@ -44,9 +44,11 @@ test('the API mapper points at the thumbnail', () => {
 });
 
 test('the hero serves the thumbnail', () => {
-  const src = read('src', 'components', 'Hero.tsx');
-  expect(src).toMatch(/item\.thumbnailUrl\s*\|\|\s*item\.filePath/);
-  expect(src).toMatch(/currentMedia\.thumbnailUrl\s*\|\|\s*currentMedia\.filePath/);
+  // ponytail: since PWD-495 the hero's photos are rendered by the
+  // marquee component, so the guard moved with them. The contract is
+  // the same one: the hero band serves the thumbnail, not the original.
+  const src = read('src', 'components', 'ImageMarquee.tsx');
+  expect(src).toMatch(/photo\.thumbnailUrl\s*\|\|\s*photo\.filePath/);
 });
 
 test('the lightbox still serves the original file', () => {
