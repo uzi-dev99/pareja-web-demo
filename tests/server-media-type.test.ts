@@ -39,14 +39,12 @@ test('a video row never hands the video file as its thumbnail', () => {
   // el .mp4 como thumbnailUrl es lo que dibujaba la tile rota en la
   // galeria, el collage secreto y el editor de fotos
   const seeded = rowToPhoto(
-    row('https://assets.mixkit.co/videos/preview/mixkit-cat-looking-around-with-curiosity-33318-large.mp4', 'video-michis-juego')
+    row('https://assets.mixkit.co/videos/preview/mixkit-cat-looking-around-with-curiosity-33318-large.mp4')
   );
   expect(seeded.mediaType).toBe('video');
   expect(seeded.thumbnailUrl).not.toContain('.mp4');
-  // el seed trae un poster del video: la tile muestra la foto
-  expect(seeded.thumbnailUrl).toContain('unsplash');
-
-  // un video sin poster: sin miniatura, pero nunca el archivo de video
+  // ponytail: el seed ya no trae videos (los de mixkit died: 403), asi
+  // que un video sin poster se queda sin miniatura (nunca el .mp4).
   const withoutPoster = rowToPhoto(row('https://example.com/clip.mp4'));
   expect(withoutPoster.thumbnailUrl).toBe('');
 });

@@ -62,6 +62,17 @@ export function loopHalfWidth(
   return fallbackWidth / 2;
 }
 
+/**
+ * Is this click a real activation of the photo?
+ *
+ * ponytail: a keyboard activation (Enter/Space) has `detail === 0` and
+ * is never a drag: the "was dragged" flag only tells about the pointer,
+ * so a drag that started in a gap (no slide under the pointer, no click
+ * to consume the flag) must not silence the next keyboard activation.
+ */
+export const isRealActivation = (wasDragged: boolean, detail: number): boolean =>
+  !wasDragged || detail === 0;
+
 interface ImageMarqueeProps {
   photos: Photo[];
   /** Called when a photo is clicked (not dragged). */
@@ -223,7 +234,7 @@ export const ImageMarquee: React.FC<ImageMarqueeProps> = ({ photos, onPhotoClick
                 // click on the slide, and without resetting it the next
                 // keyboard activation would stay silent.
                 dragged.current = false;
-                if (!wasDragged) onPhotoClick?.(e);
+                if (isRealActivation(wasDragged, e.detail)) onPhotoClick?.(e);
               }}
               className="w-60 h-80 sm:w-80 sm:h-[32rem] flex-shrink-0 rounded-2xl overflow-hidden bg-black/20"
             >

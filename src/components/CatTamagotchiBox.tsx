@@ -147,11 +147,11 @@ export const CatTamagotchiBox: React.FC = () => {
     {
       id: 'white',
       name: 'Copo',
-      breed: 'Ragdoll Esponjosa Blanca',
+      breed: 'Ragdoll Crema con Puntos Marrones',
       personality: 'Peluche viviente con ojos de zafiro',
-      // ponytail: Copo's sprite is the white ragdoll — pick a soft white
-      // tone so the bubble / bowl tint reads "gatita blanca" instead of
-      // the previous slate that didn't match.
+      // ponytail: Copo's sprite is the cream ragdoll with brown points —
+      // pick a soft cream tone so the bubble / bowl tint reads "gatita
+      // crema" instead of the previous slate that didn't match.
       themeColor: '#f5f5f4',
       tagColor: 'bg-[#f5f5f4]/15 text-[#f5f5f4] border-[#f5f5f4]/40',
       x: 82,

@@ -31,6 +31,19 @@ export const monthKey = (e: Dated): string => `${e.year}-${e.month}`;
 export const monthOrdinal = (months: string[], key: string): number =>
   months.length - months.indexOf(key);
 
+/**
+ * Does the gallery have photos of this month?
+ *
+ * ponytail: the "Ver fotos de {mes}" button opens the gallery filtered
+ * by the month, so it only makes sense when the month has photos:
+ * without them the gallery answers "Mostrando 0 recuerdos".
+ */
+export const hasMonthPhotos = (
+  month: string,
+  year: number,
+  photos: { month: string; year: number }[]
+): boolean => photos.some((p) => p.month === month && p.year === year);
+
 // Newest month first; inside a month the recap goes before its events (never reverse()).
 export function visibleTimeline<T extends Dated>(
   events: T[],

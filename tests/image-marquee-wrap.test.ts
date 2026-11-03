@@ -15,7 +15,7 @@
  */
 
 import { test, expect } from 'bun:test';
-import { loopHalfWidth, wrapOffset } from '../src/components/ImageMarquee';
+import { isRealActivation, loopHalfWidth, wrapOffset } from '../src/components/ImageMarquee';
 
 const HALF = 1000;
 
@@ -39,6 +39,19 @@ test('wrapOffset survives an offset bigger than one strip', () => {
 
 test('wrapOffset is a no-op while the track has no width yet', () => {
   expect(wrapOffset(-37, 0)).toBe(-37);
+});
+
+test('una activación de teclado no es un drag', () => {
+  // ponytail: el flag "was dragged" sólo habla del puntero: un drag
+  // que empezó en un hueco (sin slide debajo, sin click que lo consuma)
+  // dejaba el flag en true y el siguiente Enter/Space no decía nada.
+  // Una activación de teclado tiene detail 0.
+  expect(isRealActivation(false, 0)).toBe(true);
+  expect(isRealActivation(true, 0)).toBe(true);
+  // un click de puntero después de un drag no activa
+  expect(isRealActivation(true, 1)).toBe(false);
+  // un click de puntero sin drag sí
+  expect(isRealActivation(false, 1)).toBe(true);
 });
 
 test('the period of the loop is measured between the two copies of the strip', () => {

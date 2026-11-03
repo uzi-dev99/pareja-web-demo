@@ -12,6 +12,7 @@ import {
   HEADER_TILT,
   PERSPECTIVE,
   canTilt,
+  isCardActivation,
   sameMonth,
   tiltFor,
   visibleTags
@@ -204,7 +205,14 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
   // a month of the memory ("Septiembre"); a value that IS one of the
   // photo hashtags (Copo, Nube — what SecretEffectsManager dispatches)
   // keeps going to the tag filter.
+  //
+  // ponytail: the filter is applied once per value: with the tags in the
+  // deps the effect re-ran after every upload/edit/delete and re-applied
+  // the month, wiping the tag the visitor had just picked.
+  const appliedFilter = useRef<string | undefined>(undefined);
   useEffect(() => {
+    if (appliedFilter.current === initialMonthFilter) return;
+    appliedFilter.current = initialMonthFilter;
     if (!initialMonthFilter || initialMonthFilter === 'Todos') return;
     const isTag = allTags.some(
       ([tag]) => tag.toLowerCase() === initialMonthFilter.toLowerCase()
@@ -550,10 +558,12 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
                 aria-label={photo.caption || `Foto de ${photo.month} ${photo.year}`}
                 onClick={() => setActivePhoto(photo)}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    setActivePhoto(photo);
-                  }
+                  // ponytail: the key event can belong to a child control
+                  // (the edit/delete buttons of the card): then it is not
+                  // the card's activation and must not open the viewer.
+                  if (!isCardActivation(e)) return;
+                  e.preventDefault();
+                  setActivePhoto(photo);
                 }}
                 onPointerMove={tiltOn ? (e) => applyTilt(e.currentTarget, e, CARD_TILT) : undefined}
                 onPointerLeave={tiltOn ? resetTilt : undefined}

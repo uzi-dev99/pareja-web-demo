@@ -21,12 +21,15 @@ const POSTER =
   'https://image.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q/thumbnail.jpg?width=1920';
 
 // ponytail: el velo que asegura el contraste del heading sobre el video.
-// Es radial (como el del CTA de PWD-496): denso bajo el título, más suave
-// en los bordes, así la cinta se ve sin tapar el texto. Con el frame más
-// claro posible (blanco) el heading queda en 14:1 y el subtítulo en 10:1
-// (lo chequea el test del AC1).
-export const HERO_VEEL_ALPHA = 0.9;
-const HERO_VEEL = `radial-gradient(ellipse 60% 45% at 50% 22%, rgba(13,5,12,${HERO_VEEL_ALPHA}) 0%, rgba(13,5,12,0.72) 55%, rgba(13,5,12,0.35) 100%)`;
+// Es radial (como el del CTA de PWD-496): denso bajo el título y en todo
+// el ancho del texto, más suave donde no hay texto, así la cinta se ve
+// sin tapar la foto. La zona densa (0.78) cubre el copy en cualquier
+// viewport (el radio horizontal son 520 px, más que el texto a 390 y a
+// 1920); el peor caso —el borde del subtítulo— lo comprueba el test.
+export const HERO_VEIL_ALPHA = 0.9;
+export const HERO_VEIL_ALPHA_TEXT = 0.78;
+export const HERO_VEIL_ALPHA_EDGE = 0.35;
+const HERO_VEIL = `radial-gradient(ellipse 520px 40% at 50% 14%, rgba(13,5,12,${HERO_VEIL_ALPHA}) 0%, rgba(13,5,12,${HERO_VEIL_ALPHA_TEXT}) 75%, rgba(13,5,12,${HERO_VEIL_ALPHA_EDGE}) 100%)`;
 
 type HlsModule = { default: typeof Hls };
 
@@ -65,17 +68,38 @@ export async function startStream(
   const hls = new HlsCtor({ capLevelToPlayerSize: true });
   hls.loadSource(src);
   hls.attachMedia(video);
+  // ponytail: destroy una sola vez: un error fatal destruye el hls y el
+  // cleanup lo destruye otra vez (la librería se queja del segundo).
+  let destroyed = false;
+  const destroy = () => {
+    if (destroyed) return;
+    destroyed = true;
+    hls.destroy();
+  };
   // Un error fatal deja el poster de fondo: el layout no se rompe. El
   // <video> queda con la MediaSource muerta (pantalla negra), así que hay
   // que resetear el elemento para que vuelva a mostrar el poster.
   hls.on(HlsCtor.Events.ERROR, (_event, data) => {
     if (!data.fatal) return;
-    hls.destroy();
+    destroy();
     video.removeAttribute('src');
     video.load();
   });
-  return () => hls.destroy();
+  return () => destroy();
 }
+
+/**
+ * The ribbon plays while the hero is on screen and pauses when it leaves
+ * it: a background video that keeps decoding off-screen burns the
+ * battery for nothing.
+ */
+export const syncStreamPlayback = (
+  video: HTMLVideoElement,
+  visible: boolean
+): void => {
+  if (visible) void video.play().catch(() => {});
+  else video.pause();
+};
 
 // ponytail: source of truth is PHOTO_COMPLIMENT_1..12 in HARDCODED_TEXTS.md.
 // Do not add lines here — update the .md inventory instead, or the
@@ -179,9 +203,17 @@ export const Hero: React.FC = () => {
       if (cancelled) cleanup();
       else stop = cleanup;
     });
+    // ponytail: la cinta se pausa cuando el hero sale de pantalla (y
+    // vuelve a arrancar cuando vuelve).
+    const io = new IntersectionObserver(
+      ([entry]) => syncStreamPlayback(video, entry.isIntersecting),
+      { threshold: 0 }
+    );
+    io.observe(video);
     return () => {
       cancelled = true;
       stop?.();
+      io.disconnect();
     };
   }, [reduced]);
 
@@ -240,7 +272,9 @@ export const Hero: React.FC = () => {
         <video
           ref={videoRef}
           poster={POSTER}
-          autoPlay
+          // ponytail: con movimiento reducido el fondo queda en el poster,
+          // quieto: el video no se reproduce nunca.
+          autoPlay={!reduced}
           loop
           muted
           playsInline
@@ -253,7 +287,7 @@ export const Hero: React.FC = () => {
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-0 z-[1]"
-          style={{ background: HERO_VEEL }}
+          style={{ background: HERO_VEIL }}
         />
 
         {/* Soft Cozy Ambient Golden & Rosé Gradients */}

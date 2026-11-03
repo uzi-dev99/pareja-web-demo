@@ -21,7 +21,7 @@ import { usePhotos } from '../hooks/usePhotos';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { AddMemoryModal } from './AddMemoryModal';
 import { EditableText } from './EditableText';
-import { MONTHS_PER_PAGE, monthKey, monthOrdinal, visibleTimeline } from '../utils/timelineMonths';
+import { MONTHS_PER_PAGE, hasMonthPhotos, monthKey, monthOrdinal, visibleTimeline } from '../utils/timelineMonths';
 
 interface TimelineProps {
   onOpenGalleryMonth?: (month: string) => void;
@@ -364,15 +364,19 @@ export const Timeline: React.FC<TimelineProps> = ({
                           />
                         )}
                         {/* ponytail: "MES A MES" sigue abriendo la galería
-                            con su filtro de mes (AC3). */}
-                        <button
-                          type="button"
-                          onClick={() => onOpenGalleryMonth?.(event.month)}
-                          className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-[#ff85a1]/40 bg-[#ff85a1]/15 text-[#ffe5ec] hover:bg-[#ff85a1]/30 transition-colors cursor-pointer flex items-center gap-1"
-                        >
-                          <ImageIcon className="w-3 h-3" />
-                          <span>Ver fotos de {event.month}</span>
-                        </button>
+                            con su filtro de mes (AC3). Sólo si el mes tiene
+                            fotos: si no, la galería responde "Mostrando 0
+                            recuerdos". */}
+                        {hasMonthPhotos(event.month, event.year, photos) && (
+                          <button
+                            type="button"
+                            onClick={() => onOpenGalleryMonth?.(event.month)}
+                            className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-[#ff85a1]/40 bg-[#ff85a1]/15 text-[#ffe5ec] hover:bg-[#ff85a1]/30 transition-colors cursor-pointer flex items-center gap-1"
+                          >
+                            <ImageIcon className="w-3 h-3" />
+                            <span>Ver fotos de {event.month}</span>
+                          </button>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-2">

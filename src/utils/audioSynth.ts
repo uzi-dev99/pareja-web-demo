@@ -140,7 +140,7 @@ class RomanticAudioEngine {
    * Cute purr / meow harmonic for the four michis.
    *
    * ponytail: each cat gets its own `pitchMultiplier` so Copo (the
-   * white ragdoll) can purr slightly brighter and Nube (the grey
+   * cream ragdoll) can purr slightly brighter and Nube (the grey
    * tabby) slightly warmer, while Canela & Trufa keep the baseline chord.
    * Signature mirrors playCatMeow for symmetry.
    */

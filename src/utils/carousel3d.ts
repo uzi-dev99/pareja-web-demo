@@ -38,6 +38,33 @@ export const prefersReducedMotion = (): boolean =>
   typeof window.matchMedia === 'function' &&
   window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
+/**
+ * Is this media item a video? The row knows it (mediaType) or the file
+ * does (the extension).
+ *
+ * ponytail: the thumbnail cannot decide — the server answers a video
+ * with its poster as the thumbnail, so asking the thumbnail first drew
+ * a still poster where the video should play.
+ */
+export const isVideoMedia = (media: {
+  mediaType?: string;
+  filePath: string;
+}): boolean => media.mediaType === 'video' || isVideoUrl(media.filePath);
+
+/**
+ * Does this key event activate the card?
+ *
+ * ponytail: a card holds buttons (editar/borrar) in edit mode: the key
+ * event belongs to the button, not to the card, so the card must not
+ * open the photo viewer (the button's own handler runs).
+ */
+export const isCardActivation = (e: {
+  key: string;
+  target: EventTarget | null;
+  currentTarget: EventTarget | null;
+}): boolean =>
+  e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ');
+
 // ---------------------------------------------------------------------------
 // Gallery (VK-524): the 3D header and the 3D photo cards
 // ---------------------------------------------------------------------------

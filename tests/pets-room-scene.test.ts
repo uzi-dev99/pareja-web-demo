@@ -10,7 +10,7 @@
  * so the flat painted backdrop no longer fights the furniture.
  *
  * Tests:
- *  - asset guard: the furniture SVGs and the backdrop JPG exist on disk.
+ *  - asset guard: the furniture SVGs exist on disk.
  *  - mount guard: `CatTamagotchiBox.tsx` mounts the furniture layer and
  *    draws the wall/floor itself instead of painting the room over a JPG.
  *  - removal guard: the old `FurnitureLayer` mount is gone from the
@@ -22,13 +22,6 @@ import { test, expect } from 'bun:test';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 
-const ASSET_PATH = path.join(
-  import.meta.dir,
-  '..',
-  'public',
-  'box',
-  'sanctuary-background.jpg'
-);
 const SRC_BOX = fs.readFileSync(
   path.join(import.meta.dir, '..', 'src', 'components', 'CatTamagotchiBox.tsx'),
   'utf8'
@@ -37,13 +30,6 @@ const SRC_ROOM = fs.readFileSync(
   path.join(import.meta.dir, '..', 'src', 'pets', 'room.ts'),
   'utf8'
 );
-
-test('sanctuary background JPG exists on disk', () => {
-  expect(fs.existsSync(ASSET_PATH)).toBe(true);
-  // ponytail: a 0-byte file means the copy failed silently; catch it
-  // loudly so the build never ships a broken background.
-  expect(fs.statSync(ASSET_PATH).size).toBeGreaterThan(10_000);
-});
 
 test('the furniture SVGs exist on disk', () => {
   for (const file of [

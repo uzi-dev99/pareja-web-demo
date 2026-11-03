@@ -43,7 +43,9 @@ beforeAll(async () => {
     stderr: 'pipe'
   });
 
-  const deadline = Date.now() + 15000;
+  // ponytail: 30 s de margen: en un disco lento el arranque del server
+  // (con el seed) puede tardar mas de 15 s.
+  const deadline = Date.now() + 30000;
   while (Date.now() < deadline) {
     try {
       const r = await fetch(`${BASE}/api/health`);
@@ -53,11 +55,12 @@ beforeAll(async () => {
     }
     await new Promise((r) => setTimeout(r, 100));
   }
-  throw new Error('server did not start within 15s');
+  throw new Error('server did not start within 30s');
   // ponytail: bun:test cuts hooks at 5000ms by default — the boot of the real
-  // server takes ~4.5s on a slow disk (the seed inserts 24 rows one commit
-  // each), so the hook needs its own timeout or it dies before the deadline.
-}, 15000);
+  // server takes a few seconds on a slow disk (the seed writes every
+  // photo), so the hook needs its own timeout or it dies before the
+  // deadline.
+}, 30000);
 
 afterAll(async () => {
   server?.kill();

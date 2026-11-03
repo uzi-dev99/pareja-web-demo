@@ -24,8 +24,8 @@ Without `EDIT_TOKEN` the API refuses every write (500, by design). The token is 
 
     src/          React app (components, hooks, pets, data/content.ts = demo content)
     server/       Bun.serve API (/api/health, /api/photos, /api/songs, /api/content), SQLite
-    public/       fonts, PWA files, generated demo art
-    scripts/      build-pwa-icons.mjs, build-demo-art.mjs (dev-time generators)
+    public/       fonts, PWA files, the owner's art (pet sprites + furniture) used with permission
+    scripts/      build-pwa-icons.mjs (dev-time generator)
     tests/        bun:test suites (tests/demo-guard.test.ts keeps personal data out)
     docker-compose.yml, docker-compose.dev.yml, Dockerfile, deploy/   local container stack
 

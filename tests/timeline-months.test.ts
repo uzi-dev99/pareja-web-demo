@@ -22,7 +22,7 @@
 import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { MONTHS_PER_PAGE, monthKey, monthOrdinal, visibleTimeline } from '../src/utils/timelineMonths';
+import { MONTHS_PER_PAGE, hasMonthPhotos, monthKey, monthOrdinal, visibleTimeline } from '../src/utils/timelineMonths';
 
 const ROOT = join(import.meta.dir, '..');
 const TIMELINE = readFileSync(join(ROOT, 'src', 'components', 'Timeline.tsx'), 'utf8');
@@ -76,6 +76,19 @@ test('AC2: el timeline tiene el botón "Cargar más" con su estado', () => {
   expect(TIMELINE).toMatch(/Cargar más/);
   expect(TIMELINE).toMatch(/visibleMonths\s*<\s*months\.length/);
   expect(TIMELINE).toMatch(/setVisibleMonths\(\(n\)\s*=>\s*n\s*\+\s*MONTHS_PER_PAGE\)/);
+});
+
+test('el botón "Ver fotos de {mes}" sólo aparece si el mes tiene fotos', () => {
+  // ponytail: el botón abre la galería filtrada por el mes: si el mes no
+  // tiene fotos, la galería responde "Mostrando 0 recuerdos".
+  const photos = [
+    { month: 'Febrero', year: 2026 },
+    { month: 'Marzo', year: 2026 }
+  ];
+  expect(hasMonthPhotos('Febrero', 2026, photos)).toBe(true);
+  expect(hasMonthPhotos('Enero', 2026, photos)).toBe(false);
+  // el mismo mes de otro año no cuenta
+  expect(hasMonthPhotos('Febrero', 2025, photos)).toBe(false);
 });
 
 test('D4: el ordinal del badge va de 1 (Enero) a 9 (Septiembre) sobre el seed de 9 meses', () => {

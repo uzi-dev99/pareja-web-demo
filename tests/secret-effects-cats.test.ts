@@ -70,7 +70,7 @@ test('nube handler calls playPurrSound (michi effect, not magic sparkle)', () =>
 
 test('playPurrSound signature accepts an optional pitch multiplier', () => {
   // ponytail: each of the four michis gets a slightly different rumble.
-  // Copo (white ragdoll) is brighter, Nube (grey tabby) is warmer.
+  // Copo (cream ragdoll) is brighter, Nube (grey tabby) is warmer.
   expect(SRC_AUDIO).toMatch(/public\s+playPurrSound\s*\([^)]*pitchMultiplier\s*[:=]/);
 });
 

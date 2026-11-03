@@ -18,19 +18,19 @@
  */
 
 import { expect, test } from 'bun:test';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import React from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
 import {
   canTilt,
+  isVideoMedia,
   isVideoUrl,
   mediaUrl,
   sameMonth,
   tiltFor,
   visibleTags
 } from '../src/utils/carousel3d';
-
-const ROOT = join(import.meta.dir, '..');
-const SRC = readFileSync(join(ROOT, 'src', 'components', 'TimelineCarousel.tsx'), 'utf8');
+import { TimelineCarousel } from '../src/components/TimelineCarousel';
+import type { Photo } from '../src/types';
 
 test('el puntero en el centro no inclina nada', () => {
   const t = tiltFor(0, 0, 8);
@@ -96,9 +96,37 @@ test('a video renders its own file, not its poster image', () => {
 });
 
 test('el carrusel plano sigue renderizando el .mp4 como video', () => {
-  // ponytail: el bucket de fotos devuelve los dos videos del seed con la
-  // extension .mp4 pero etiquetados como image — un <img> con un .mp4
-  // queda roto (y el alt se imprime sobre la tarjeta).
-  expect(SRC).toMatch(/preload="metadata"/);
-  expect(SRC).toMatch(/isVideoUrl\(/);
+  // ponytail: render de verdad (no grep del fuente): una fila de video
+  // con poster (el server responde el video con su poster como
+  // thumbnail) tiene que renderizar un <video>, no el <img> del poster.
+  const videoRow: Photo = {
+    id: 'v1',
+    filePath: 'https://x/clip.mp4',
+    thumbnailUrl: 'https://x/poster.jpg',
+    mediaType: 'video',
+    caption: 'un video',
+    month: 'Enero',
+    year: 2026,
+    tags: []
+  };
+  const html = renderToStaticMarkup(
+    React.createElement(TimelineCarousel, {
+      images: [videoRow],
+      eventTitle: 'Un mes',
+      eventDate: 'Enero 2026'
+    })
+  );
+  expect(html).toMatch(/<video/);
+  expect(html).toMatch(/clip\.mp4/);
+  expect(html).not.toMatch(/<img/);
+});
+
+test('isVideoMedia decide por la fila o por el archivo, nunca por el poster', () => {
+  // el poster de un video es una imagen: preguntar por el thumbnail
+  // mostraba el poster en vez del video.
+  expect(isVideoMedia({ mediaType: 'video', filePath: 'https://x/clip.mp4' })).toBe(true);
+  expect(isVideoMedia({ filePath: 'https://x/clip.mp4' })).toBe(true);
+  expect(isVideoMedia({ mediaType: 'image', filePath: 'https://x/foto.jpg' })).toBe(false);
+  // la fila manda aunque el archivo no lo diga
+  expect(isVideoMedia({ mediaType: 'video', filePath: 'https://x/foto.jpg' })).toBe(true);
 });

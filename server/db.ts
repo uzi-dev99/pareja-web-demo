@@ -104,41 +104,46 @@ function seedIfEmpty(db: Database): void {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  for (const p of seedPhotos) {
-    insert.run(
-      `seed-${p.id}`,
-      'public',
-      null,
-      null,
-      p.filePath,
-      p.id,
-      p.caption,
-      p.month,
-      p.year,
-      p.dateStr ?? null,
-      p.location ?? '',
-      JSON.stringify(p.tags ?? [])
-    );
-  }
+  // ponytail: una sola transaccion para todo el seed. Con un commit por
+  // fila el arranque tardaba mas de 15 s en un disco lento (los tests de
+  // smoke se caian por timeout esperando /api/health).
+  db.transaction(() => {
+    for (const p of seedPhotos) {
+      insert.run(
+        `seed-${p.id}`,
+        'public',
+        null,
+        null,
+        p.filePath,
+        p.id,
+        p.caption,
+        p.month,
+        p.year,
+        p.dateStr ?? null,
+        p.location ?? '',
+        JSON.stringify(p.tags ?? [])
+      );
+    }
 
-  let pos = 1;
-  for (const s of seedSecretPhotos) {
-    insert.run(
-      `seed-secret-${pos}`,
-      'secret',
-      null,
-      pos,
-      s.url,
-      `secret-${pos}`,
-      s.caption,
-      null,
-      null,
-      null,
-      '',
-      '[]'
-    );
-    pos += 1;
-  }
+    let pos = 1;
+    for (const s of seedSecretPhotos) {
+      insert.run(
+        `seed-secret-${pos}`,
+        'secret',
+        null,
+        pos,
+        s.url,
+        `secret-${pos}`,
+        s.caption,
+        null,
+        null,
+        null,
+        '',
+        '[]'
+      );
+      pos += 1;
+    }
+  })();
 
   console.log(`[db] Seeded ${seedPhotos.length} public + ${seedSecretPhotos.length} secret photos.`);
 }

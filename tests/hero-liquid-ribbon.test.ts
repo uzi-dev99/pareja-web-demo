@@ -21,7 +21,14 @@ import { join } from 'node:path';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import type Hls from 'hls.js';
-import { HERO_VEEL_ALPHA, Hero, startStream } from '../src/components/Hero';
+import {
+  HERO_VEIL_ALPHA,
+  HERO_VEIL_ALPHA_TEXT,
+  Hero,
+  startStream,
+  syncStreamPlayback
+} from '../src/components/Hero';
+import { prefersReducedMotion } from '../src/utils/carousel3d';
 import { CtaSection } from '../src/components/CtaSection';
 
 const ROOT = join(import.meta.dir, '..');
@@ -30,7 +37,6 @@ const ROOT = join(import.meta.dir, '..');
 const read = (p: string) =>
   existsSync(join(ROOT, p)) ? readFileSync(join(ROOT, p), 'utf8') : '';
 
-const HERO_SRC = read('src/components/Hero.tsx');
 const CTA_SRC = read('src/components/CtaSection.tsx');
 
 const heroHtml = renderToStaticMarkup(React.createElement(Hero, {}));
@@ -143,6 +149,7 @@ test('a broken hls.js download keeps the poster too', async () => {
 test('a fatal stream error resets the video so the poster shows again', async () => {
   const video = fakeVideo('');
   let onError: ((event: unknown, data: { fatal: boolean }) => void) | undefined;
+  let destroys = 0;
   class FatalHls {
     static isSupported = () => true;
     static Events = { ERROR: 'error' };
@@ -152,7 +159,9 @@ test('a fatal stream error resets the video so the poster shows again', async ()
     on(_event: string, cb: (event: unknown, data: { fatal: boolean }) => void) {
       onError = cb;
     }
-    destroy() {}
+    destroy() {
+      destroys++;
+    }
   }
   const stop = await startStream(video, 'https://x/stream.m3u8', async () => ({
     default: FatalHls as unknown as typeof Hls
@@ -160,11 +169,18 @@ test('a fatal stream error resets the video so the poster shows again', async ()
   onError?.(undefined, { fatal: true });
   expect(video.removed).toBe(true);
   expect(video.loaded).toBeGreaterThan(0);
+  expect(destroys).toBe(1);
   stop();
+  // ponytail: el cleanup NO destruye otra vez (la libreria se queja del
+  // segundo destroy).
+  expect(destroys).toBe(1);
 });
 
-// AC1 — el velo del hero: con el video más claro posible (blanco) el heading
-// blanco y el subtítulo rosado siguen con 4.5:1 o más.
+// AC1 — el velo del hero: con el video más claro posible (blanco) el
+// heading y el subtítulo siguen legibles en el PEOR caso: el borde del
+// texto, donde el velo todavía tiene su alfa denso. El heading es un
+// gradiente oro→rosa que termina en #ff4d6d (texto grande: 3:1); el
+// subtítulo (#fcd5df) es texto normal (4.5:1).
 const srgb = (c: number) => {
   const v = c / 255;
   return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
@@ -175,29 +191,88 @@ const contrast = (fg: [number, number, number], bg: [number, number, number]) =>
   const [a, b] = [luminance(...fg), luminance(...bg)].sort((x, y) => y - x);
   return (a + 0.05) / (b + 0.05);
 };
+// el frame más claro posible (blanco) debajo del velo del sitio (#0d050c)
+const VEIL: [number, number, number] = [13, 5, 12];
+const overVeil = (alpha: number): [number, number, number] =>
+  VEIL.map((c, i) =>
+    Math.round(alpha * c + (1 - alpha) * 255)
+  ) as [number, number, number];
 
 test('the hero veil keeps the heading readable over the brightest frame', () => {
-  // peor caso: el video en blanco puro debajo del velo del sitio (#0d050c)
-  const veil: [number, number, number] = [13, 5, 12];
   const white: [number, number, number] = [255, 255, 255];
-  const over = white.map((c, i) =>
-    Math.round(HERO_VEEL_ALPHA * veil[i] + (1 - HERO_VEEL_ALPHA) * c)
-  ) as [number, number, number];
-  expect(contrast(white, over)).toBeGreaterThanOrEqual(4.5);
+  // el peor caso: el borde del texto (no el centro del velo)
+  const worst = overVeil(HERO_VEIL_ALPHA_TEXT);
+  expect(contrast(white, worst)).toBeGreaterThanOrEqual(4.5);
+  // el heading: el final del gradiente (#ff4d6d) es texto grande (3:1)
+  expect(contrast([255, 77, 109], worst)).toBeGreaterThanOrEqual(3);
   // el subtítulo del hero (#fcd5df) también
-  expect(contrast([252, 213, 223], over)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast([252, 213, 223], worst)).toBeGreaterThanOrEqual(4.5);
+  // y en el centro del velo (más denso) también
+  const centre = overVeil(HERO_VEIL_ALPHA);
+  expect(contrast(white, centre)).toBeGreaterThanOrEqual(4.5);
+  expect(contrast([252, 213, 223], centre)).toBeGreaterThanOrEqual(4.5);
+});
+
+// AC3 — el hero no reproduce el fondo con movimiento reducido.
+test('the hero honours prefers-reduced-motion', () => {
+  // ponytail: el test corre el RENDER (no busca el nombre de una
+  // variable): con movimiento reducido el hero no pide autoplay y el
+  // fondo queda en el poster, quieto.
+  const g = globalThis as { window?: unknown; matchMedia?: unknown };
+  const realWindow = g.window;
+  const realMatchMedia = g.matchMedia;
+  try {
+    // bun no tiene window: se le da el propio globalThis (que ya tiene
+    // addEventListener) con un matchMedia.
+    g.window = globalThis;
+    g.matchMedia = (q: string) => ({ matches: q.includes('reduce') });
+    expect(prefersReducedMotion()).toBe(true);
+    const html = renderToStaticMarkup(React.createElement(Hero, {}));
+    expect(html).not.toMatch(/autoPlay/);
+    expect(html).toMatch(/poster=/);
+  } finally {
+    g.window = realWindow;
+    g.matchMedia = realMatchMedia;
+  }
+});
+
+test('prefersReducedMotion reads the OS setting', () => {
+  const real = (globalThis as { window?: unknown }).window;
+  try {
+    (globalThis as { window?: unknown }).window = {
+      matchMedia: (q: string) => ({ matches: q.includes('reduce') })
+    };
+    expect(prefersReducedMotion()).toBe(true);
+    (globalThis as { window?: unknown }).window = { matchMedia: () => ({ matches: false }) };
+    expect(prefersReducedMotion()).toBe(false);
+    // sin window (SSR/tests) el sitio no assume nada
+    (globalThis as { window?: unknown }).window = undefined;
+    expect(prefersReducedMotion()).toBe(false);
+  } finally {
+    (globalThis as { window?: unknown }).window = real;
+  }
+});
+
+// AC3 — la cinta se pausa cuando el hero sale de pantalla.
+test('the ribbon pauses when the hero is out of view and resumes when it is back', () => {
+  const calls: string[] = [];
+  const video = {
+    play: () => {
+      calls.push('play');
+      return Promise.resolve();
+    },
+    pause: () => calls.push('pause')
+  } as unknown as HTMLVideoElement;
+  syncStreamPlayback(video, false);
+  expect(calls).toEqual(['pause']);
+  syncStreamPlayback(video, true);
+  expect(calls).toEqual(['pause', 'play']);
 });
 
 // AC3 — un solo video en la página: el del hero. El CTA no lo tiene.
 test('the page has a single video element: the hero ribbon', () => {
   expect(heroHtml.match(/<video/g)?.length).toBe(1);
   expect(ctaHtml).not.toMatch(/<video/);
-});
-
-// AC3 — con movimiento reducido el fondo queda en el poster, quieto.
-test('the hero honours prefers-reduced-motion', () => {
-  expect(HERO_SRC).toMatch(/prefersReducedMotion/);
-  expect(HERO_SRC).toMatch(/reduced/);
 });
 
 // AC2 — el CTA conserva layout, botones y copy, con un fondo calmo.

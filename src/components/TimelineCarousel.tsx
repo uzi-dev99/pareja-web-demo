@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Heart, Sparkles, Upload } from 'lucide-react
 import { Photo } from '../types';
 import { audioEngine } from '../utils/audioSynth';
 import { compressImage } from '../utils/compressImage';
-import { isVideoUrl, mediaUrl, prefersReducedMotion } from '../utils/carousel3d';
+import { isVideoMedia, mediaUrl, prefersReducedMotion } from '../utils/carousel3d';
 
 interface TimelineCarouselProps {
   images: Photo[];
@@ -100,6 +100,9 @@ export const TimelineCarousel: React.FC<TimelineCarouselProps> = ({
   if (!images || images.length === 0) return null;
 
   const currentImage = images[currentIndex];
+  // ponytail: the server answers a video with its poster as the thumbnail,
+  // so the thumbnail cannot decide: the row (mediaType) or the file does.
+  const isVideo = isVideoMedia(currentImage);
 
   const advance = (dir: 1 | -1) => {
     setDirection(dir);
@@ -277,7 +280,7 @@ export const TimelineCarousel: React.FC<TimelineCarouselProps> = ({
             exit="exit"
             className="absolute inset-0"
           >
-            {isVideoUrl(currentImage.thumbnailUrl || currentImage.filePath) ? (
+            {isVideo ? (
               <MediaVideo
                 src={mediaUrl(currentImage.filePath, currentImage.thumbnailUrl, true)}
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
@@ -285,7 +288,9 @@ export const TimelineCarousel: React.FC<TimelineCarouselProps> = ({
             ) : (
               <img
                 src={currentImage.thumbnailUrl || currentImage.filePath}
-                alt={currentImage.caption || eventTitle}
+                // ponytail: el alt va vacío: con la foto caída el navegador
+                // imprime el texto del alt encima de la tarjeta.
+                alt=""
                 loading="lazy"
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />

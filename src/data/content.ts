@@ -163,35 +163,9 @@ export const photos: Photo[] = [
     tags: ['Canela', 'Trufa', 'Copo', 'Nube', 'Michis', 'Gatos', 'Gatas', 'Los 4 Michis']
   },
 
-  // VIDEO DESTACADO 1: LOS MICHIS EN ACCIÓN
-  {
-    id: 'video-michis-juego',
-    filePath: 'https://assets.mixkit.co/videos/preview/mixkit-cat-looking-around-with-curiosity-33318-large.mp4',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
-    mediaType: 'video',
-    duration: '0:14',
-    caption: 'Video: Curiosidad felina total cuando los cuatro escuchan el paquete de comida.',
-    month: 'Agosto',
-    year: 2026,
-    dateStr: '18 Ago 2026',
-    location: 'Living',
-    tags: ['Video', 'Michis', 'Canela', 'Trufa', 'Copo', 'Nube']
-  },
-
-  // VIDEO DESTACADO 2: NUESTROS MOMENTOS DE PAZ
-  {
-    id: 'video-atardecer-paz',
-    filePath: 'https://assets.mixkit.co/videos/preview/mixkit-waves-in-the-water-1164-large.mp4',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=600&q=80',
-    mediaType: 'video',
-    duration: '0:18',
-    caption: 'Video: Recordando la calma de aquel atardecer juntos contemplando el agua.',
-    month: 'Julio',
-    year: 2026,
-    dateStr: '12 Jul 2026',
-    location: 'Mirador',
-    tags: ['Video', 'Atardecer', 'Magia', 'Paz']
-  },
+  // ponytail: los dos videos del seed (mixkit) se sacaron: el CDN de
+  // mixkit ya no sirve esos archivos (403) y el demo no puede mostrar un
+  // video muerto. Un video nuevo, de una fuente viva, se agrega acá.
 
   // MOMENTOS DE LA HISTORIA
   {
@@ -295,8 +269,8 @@ export const timelineEvents: TimelineEvent[] = [
     internalJoke: 'Te juro que no sabía que ese iba a ser el mes que cambiaría todo.',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1499914485622-a88fe5369e89?auto=format&fit=crop&w=1200&q=80',
-        caption: 'Atardecer de enero, ventana abierta y vos en mi cabeza',
+        url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?auto=format&fit=crop&w=1200&q=80',
+        caption: 'Atardecer de enero, el mar y vos en mi cabeza',
         location: 'El preludio'
       },
       {
