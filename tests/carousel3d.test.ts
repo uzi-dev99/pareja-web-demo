@@ -2,15 +2,16 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Contract: the 3D month-card cylinder (PWD-497) turns a continuous
- * progress value into the position of every card.
+ * Contract: the 3D helpers shared by the gallery (VK-524) and by the
+ * flat carousels.
  *
- *   1. progress 0 centers card 0 and pushes its neighbours to the sides.
- *   2. The scene is cyclic: progress + count is the same picture.
- *   3. Cards more than three slots away are hidden.
- *   4. The magnetic step dwells at the center of a card.
- *   5. The neighbour card sits one card width away and turns its back
- *      to the viewer; the edge card pokes past the viewport edge.
+ *   1. tiltFor turns normalized pointer offsets into degrees (the card
+ *      leans away from the edge the pointer is on).
+ *   2. canTilt is false on touch (pointer: coarse) and false with
+ *      reduced motion.
+ *   3. visibleTags folds the hashtag wall to the top N.
+ *   4. sameMonth matches the month of a memory, case-insensitively.
+ *   5. The media helpers: a .mp4 is a video even if the row says image.
  *
  * ponytail: the math lives in a pure util (src/utils/carousel3d.ts) so
  * it is tested with numbers instead of with a DOM.
@@ -20,111 +21,62 @@ import { expect, test } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  cardPose,
-  cylinderLayout,
-  damp,
+  canTilt,
   isVideoUrl,
   mediaUrl,
-  smoothstep,
-  virtualIndex,
-  wrapOffset
+  sameMonth,
+  tiltFor,
+  visibleTags
 } from '../src/utils/carousel3d';
 
 const ROOT = join(import.meta.dir, '..');
 const SRC = readFileSync(join(ROOT, 'src', 'components', 'TimelineCarousel.tsx'), 'utf8');
-const TIMELINE = readFileSync(join(ROOT, 'src', 'components', 'Timeline.tsx'), 'utf8');
 
-const M = { cardW: 240, viewportW: 1200 };
-
-test('progress 0 centers card 0 and pushes the neighbours to the sides', () => {
-  const poses = cylinderLayout(0, 5, M);
-  expect(poses[0].x).toBeCloseTo(0, 5);
-  expect(poses[0].z).toBeCloseTo(400, 5);
-  expect(poses[0].rotateY).toBeCloseTo(0, 5);
-  expect(poses[0].centerFactor).toBeCloseTo(1, 5);
-  // the next card goes to the right and turns its right edge to the viewer
-  expect(poses[1].x).toBeGreaterThan(0);
-  expect(poses[1].rotateY).toBeLessThan(0);
-  // the previous one goes to the left
-  expect(poses[4].x).toBeLessThan(0);
-  expect(poses[4].rotateY).toBeGreaterThan(0);
+test('el puntero en el centro no inclina nada', () => {
+  const t = tiltFor(0, 0, 8);
+  expect(t.rotateX).toBeCloseTo(0, 5);
+  expect(t.rotateY).toBeCloseTo(0, 5);
 });
 
-test('the scene is cyclic: progress + count is the same picture', () => {
-  const a = cylinderLayout(0, 5, M);
-  const b = cylinderLayout(5, 5, M);
-  a.forEach((pose, i) => {
-    expect(b[i].x).toBeCloseTo(pose.x, 3);
-    expect(b[i].z).toBeCloseTo(pose.z, 3);
-    expect(b[i].rotateY).toBeCloseTo(pose.rotateY, 3);
-  });
+test('el puntero arriba/izquierda hunde esa esquina', () => {
+  // ponytail: convención de las tarjetas que se inclinan: la esquina
+  // más cercana al puntero se hunde (rotateX/rotateY positivos).
+  const t = tiltFor(-1, -1, 8);
+  expect(t.rotateX).toBeCloseTo(8, 5);
+  expect(t.rotateY).toBeCloseTo(-8, 5);
 });
 
-test('cards more than three slots away are hidden', () => {
-  const poses = cylinderLayout(0, 9, M);
-  expect(poses[4].visible).toBe(false);
-  expect(poses[5].visible).toBe(false);
-  expect(poses[3].visible).toBe(true);
-  expect(poses[6].visible).toBe(true);
+test('la inclinación no pasa del máximo pedido', () => {
+  const t = tiltFor(1, 1, 6);
+  expect(Math.abs(t.rotateX)).toBeLessThanOrEqual(6);
+  expect(Math.abs(t.rotateY)).toBeLessThanOrEqual(6);
 });
 
-test('the magnetic step dwells at the center of a card', () => {
-  expect(virtualIndex(0.5)).toBeCloseTo(0.5, 5);
-  // a tenth of the way to the next card barely moves the scene
-  expect(Math.abs(virtualIndex(0.1))).toBeLessThan(0.02);
-  expect(wrapOffset(-5, 5)).toBeCloseTo(0, 5);
-  expect(wrapOffset(4, 5)).toBeCloseTo(-1, 5);
+test('sin tilt en táctil ni con movimiento reducido', () => {
+  expect(canTilt({ coarse: false, reduced: false })).toBe(true);
+  // pointer: coarse (táctil) → la composición queda plana
+  expect(canTilt({ coarse: true, reduced: false })).toBe(false);
+  // movimiento reducido → nada se inclina
+  expect(canTilt({ coarse: false, reduced: true })).toBe(false);
+  expect(canTilt({ coarse: true, reduced: true })).toBe(false);
 });
 
-test('the neighbour card sits one card width away and shows its back', () => {
-  const pose = cardPose(1, M);
-  expect(pose.x).toBeCloseTo(M.cardW + 36, 5);
-  expect(pose.z).toBeCloseTo(220, 5);
-  // past 90° the back face of the card is the one facing the viewer
-  expect(Math.abs(pose.rotateY)).toBeGreaterThan(90);
-  expect(pose.visible).toBe(true);
+test('el muro de hashtags muestra los 8 primeros y el resto detrás del "ver más"', () => {
+  const tags = Array.from({ length: 30 }, (_, i) => `#tag${i}`);
+  expect(visibleTags(tags, false, 8)).toHaveLength(8);
+  expect(visibleTags(tags, false, 8)[0]).toBe('#tag0');
+  // expandido: la pared entera
+  expect(visibleTags(tags, true, 8)).toHaveLength(30);
+  // una pared corta no inventa tags
+  expect(visibleTags(['#a', '#b'], false, 8)).toEqual(['#a', '#b']);
 });
 
-test('the edge card pokes past the viewport edge', () => {
-  const pose = cardPose(2, M);
-  const scale = 1350 / (1350 + 60);
-  expect((pose.x + M.cardW / 2) * scale).toBeGreaterThan(M.viewportW / 2);
-  expect(pose.opacity).toBeCloseTo(1, 5);
-});
-
-test('smoothstep and damp are the shared easing helpers', () => {
-  expect(smoothstep(0)).toBe(0);
-  expect(smoothstep(1)).toBe(1);
-  expect(smoothstep(0.5)).toBeCloseTo(0.5, 5);
-  expect(damp(0, 10, 0.5)).toBe(5);
-  expect(damp(10, 0, 0.5)).toBe(5);
-});
-
-test('AC1: the cylinder drives the cards with requestAnimationFrame', () => {
-  expect(SRC).toMatch(/requestAnimationFrame/);
-  expect(SRC).toMatch(/cylinderLayout\(/);
-  expect(SRC).toMatch(/onTouchStart/);
-  expect(SRC).toMatch(/onTouchEnd/);
-});
-
-test('AC2: the rAF loop stops off-screen and reduced motion drops it', () => {
-  expect(SRC).toMatch(/IntersectionObserver/);
-  expect(SRC).toMatch(/cancelAnimationFrame/);
-  expect(SRC).toMatch(/prefers-reduced-motion: reduce/);
-});
-
-test('AC3: no bank-card content, and the cards come from the timeline', () => {
-  expect(SRC).not.toMatch(/CVV|cvv|chip|Chip|JWT|4242|cardholder|Cardholder/);
-  expect(TIMELINE).toMatch(/<MonthCardsCylinder/);
-});
-
-test('AC3: un .mp4 etiquetado como imagen se renderiza como video, no como img', () => {
-  // ponytail: el bucket de fotos devuelve los dos videos del seed con la
-  // extension .mp4 pero etiquetados como image — un <img> con un .mp4
-  // queda roto (y el alt se imprime sobre la tarjeta).
-  expect(SRC).toMatch(/preload="metadata"/);
-  // los dos carruseles (el 3D y el plano) usan el mismo helper
-  expect(SRC.match(/isVideoUrl\(/g)?.length).toBeGreaterThanOrEqual(2);
+test('sameMonth compara el mes del recuerdo sin mirar mayúsculas', () => {
+  expect(sameMonth('Febrero', 'febrero')).toBe(true);
+  expect(sameMonth('Febrero', ' Febrero ')).toBe(true);
+  expect(sameMonth('Febrero', 'Marzo')).toBe(false);
+  // una foto subida sin mes no matchea ningún mes
+  expect(sameMonth(undefined, 'Febrero')).toBe(false);
 });
 
 test('isVideoUrl tells a video file from an image (called, not grepped)', () => {
@@ -143,36 +95,10 @@ test('a video renders its own file, not its poster image', () => {
   expect(mediaUrl('/uploads/foto.jpg', undefined, false)).toBe('/uploads/foto.jpg');
 });
 
-test('the card fades out completely before it leaves the cylinder', () => {
-  // the edge fade (past the second slot) has to exist: without it the card
-  // pops in and out of the scene
-  expect(cardPose(2.5, M).opacity).toBeLessThan(0.6);
-  expect(cardPose(2.5, M).opacity).toBeGreaterThan(0);
-  expect(cardPose(3, M).opacity).toBe(0);
-  expect(cardPose(1.5, M).opacity).toBe(1);
-});
-
-test('with six months or fewer no card jumps edge to edge on the wrap', () => {
-  // the wrap happens at |offset| = count/2: the card sitting there has to be
-  // invisible, or it teleports from one screen edge to the other
-  for (const count of [3, 4, 5, 6]) {
-    const poses = cylinderLayout(count / 2, count, M);
-    const farthest = poses.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) ? b : a));
-    expect(farthest.opacity).toBe(0);
-  }
-});
-
-test('with nine months the fade still ends at the third slot', () => {
-  const poses = cylinderLayout(0, 9, M);
-  expect(poses[2].opacity).toBe(1);
-  expect(poses[3].opacity).toBe(0);
-  expect(poses[4].visible).toBe(false);
-});
-
-test('with two months or fewer no card disappears', () => {
-  // no hidden slot to fade into: the cards keep the base opacity
-  for (const count of [1, 2]) {
-    cylinderLayout(0, count, M).forEach((pose) => expect(pose.opacity).toBe(1));
-    cylinderLayout(0.5, count, M).forEach((pose) => expect(pose.opacity).toBe(1));
-  }
+test('el carrusel plano sigue renderizando el .mp4 como video', () => {
+  // ponytail: el bucket de fotos devuelve los dos videos del seed con la
+  // extension .mp4 pero etiquetados como image — un <img> con un .mp4
+  // queda roto (y el alt se imprime sobre la tarjeta).
+  expect(SRC).toMatch(/preload="metadata"/);
+  expect(SRC).toMatch(/isVideoUrl\(/);
 });

@@ -112,8 +112,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-copo-2',
-    filePath: 'https://images.unsplash.com/photo-1513360375582-619d49816d33?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1513360375582-619d49816d33?auto=format&fit=crop&w=600&q=80',
+    filePath: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=1200&q=80',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=600&q=80',
     mediaType: 'image',
     caption: 'Copo con sus patitas dobladas mirándote con devoción absoluta.',
     month: 'Mayo',
@@ -519,7 +519,7 @@ export const timelineEvents: TimelineEvent[] = [
         location: 'Mirador'
       },
       {
-        url: 'https://images.unsplash.com/photo-1513360375582-619d49816d33?auto=format&fit=crop&w=1200&q=80',
+        url: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=1200&q=80',
         caption: 'Copo descansando bajo el rayito dorado del atardecer',
         location: 'Living'
       },

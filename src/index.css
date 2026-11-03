@@ -285,3 +285,80 @@
   animation: barber .8s linear infinite;
 }
 @keyframes barber { to { background-position: 22.63px 0; } }
+
+/* ─── Gallery 3D (VK-524) ─────────────────────────────────────────────────
+   La cabecera de la galería es una composición 3D: los paneles de vidrio
+   flotan a distintas profundidades y el conjunto se inclina con el
+   puntero. Cada foto es una tarjeta que se levanta al pasar el puntero
+   o al enfocarla con el teclado. Sólo se animan transform y opacity. */
+
+@property --tilt-x { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --tilt-y { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+@property --caption-y { syntax: '<length>'; inherits: false; initial-value: 8px; }
+
+.gallery-3d {
+  position: relative;
+}
+
+/* el escenario: se inclina con el puntero (--tilt-x / --tilt-y) */
+.gallery-3d-stage {
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transform-style: preserve-3d;
+  transition: transform 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* cada panel de vidrio flota a su profundidad */
+.gallery-3d-panel {
+  transform: translateZ(var(--z, 0px));
+  transition: transform 420ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.gallery-3d-panel--upload { --z: 56px; }
+.gallery-3d-panel--edit { --z: 45px; }
+.gallery-3d-panel--title { --z: 34px; }
+.gallery-3d-panel--months { --z: 18px; }
+.gallery-3d-panel--tags { --z: 0px; }
+
+/* En pantallas chicas la composición se aplana: sin profundidad no hay
+   escalado y la cabecera no se sale del viewport. */
+@media (max-width: 639px) {
+  .gallery-3d-panel { --z: 0px; }
+}
+
+/* la foto como tarjeta 3D */
+.gallery-card3d-perspective { perspective: 1000px; }
+
+.gallery-card3d {
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 380ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.gallery-card3d:hover,
+.gallery-card3d:focus-visible {
+  transform: translate3d(0, -6px, 26px) rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+}
+.gallery-card3d:focus-visible {
+  outline: 2px solid rgba(255, 133, 161, 0.85);
+  outline-offset: 3px;
+}
+
+.gallery-card3d-media { transform: translateZ(0); }
+
+/* el panel del pie avanza hacia el espectador */
+.gallery-card3d-caption {
+  transform: translate3d(0, var(--caption-y), 22px);
+  transition: transform 380ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+.gallery-card3d:hover .gallery-card3d-caption,
+.gallery-card3d:focus-visible .gallery-card3d-caption { --caption-y: 0px; }
+
+/* Movimiento reducido: nada se inclina, nada se levanta, las tarjetas
+   quedan estáticas. */
+@media (prefers-reduced-motion: reduce) {
+  .gallery-3d-stage,
+  .gallery-3d-panel,
+  .gallery-card3d,
+  .gallery-card3d-caption { transition: none; }
+  .gallery-card3d:hover,
+  .gallery-card3d:focus-visible { transform: none; }
+  .gallery-card3d-caption { transform: none; }
+}

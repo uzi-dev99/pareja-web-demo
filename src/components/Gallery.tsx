@@ -7,6 +7,15 @@ import { usePhotos } from '../hooks/usePhotos';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { EditPhotoModal } from './EditPhotoModal';
 import { buildPageWindow } from '../utils/pagination';
+import {
+  CARD_TILT,
+  HEADER_TILT,
+  PERSPECTIVE,
+  canTilt,
+  sameMonth,
+  tiltFor,
+  visibleTags
+} from '../utils/carousel3d';
 
 interface GalleryProps {
   initialMonthFilter?: string;
@@ -23,6 +32,10 @@ interface GalleryProps {
 // ponytail: 12 per page on every viewport (fills rows of 2, 3 and 4 columns).
 const PAGE_SIZE = 12;
 
+// ponytail: el muro de hashtags muestra los 8 más usados; el resto
+// espera detrás del "ver más".
+const TAG_LIMIT = 8;
+
 export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode = false }) => {
   // ponytail: filters are (a) upload month derived from created_at and (b) hashtag from photo.tags.
   // Both are combinable; cleared via the reset button below.
@@ -34,10 +47,49 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
   const [deleteAllText, setDeleteAllText] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // ponytail: el muro de hashtags se pliega (AC4) y la galería recuerda
+  // el mes del recuerdo que pidió el timeline ("MES A MES" → galería).
+  const [tagsExpanded, setTagsExpanded] = useState(false);
+  const [activePhotoMonth, setActivePhotoMonth] = useState<string | null>(null);
+  // ponytail: la inclinación 3D es sólo para mouse/trackpad y nunca
+  // con movimiento reducido (AC1/AC5).
+  const [tiltOn, setTiltOn] = useState(false);
 
   // ponytail: photos now come from the server. The first run seeds from content.ts;
   // after that the API is the source of truth.
   const { photos: apiPhotos, addPhotos, updatePhoto, deletePhoto, deleteAll } = usePhotos('public');
+
+  // ponytail: la inclinación 3D sigue al puntero sólo con mouse o
+  // trackpad (`pointer: coarse` = táctil, sin tilt) y nunca con
+  // movimiento reducido.
+  useEffect(() => {
+    const coarse = window.matchMedia('(pointer: coarse)');
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const sync = () => setTiltOn(canTilt({ coarse: coarse.matches, reduced: reduce.matches }));
+    sync();
+    coarse.addEventListener('change', sync);
+    reduce.addEventListener('change', sync);
+    return () => {
+      coarse.removeEventListener('change', sync);
+      reduce.removeEventListener('change', sync);
+    };
+  }, []);
+
+  // ponytail: el puntero escribe dos variables CSS en el elemento y la
+  // transición de CSS hace el suavizado: sin rAF y sin re-render.
+  const applyTilt = (el: HTMLElement, e: React.PointerEvent, max: number) => {
+    const rect = el.getBoundingClientRect();
+    const nx = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+    const ny = ((e.clientY - rect.top) / rect.height) * 2 - 1;
+    const { rotateX, rotateY } = tiltFor(nx, ny, max);
+    el.style.setProperty('--tilt-x', `${rotateX.toFixed(2)}deg`);
+    el.style.setProperty('--tilt-y', `${rotateY.toFixed(2)}deg`);
+  };
+
+  const resetTilt = (e: React.PointerEvent) => {
+    e.currentTarget.style.setProperty('--tilt-x', '0deg');
+    e.currentTarget.style.setProperty('--tilt-y', '0deg');
+  };
 
   // Shared bulk-upload state (also used by SecretCollageModal).
   const { isUploading, progress: uploadProgress, uploadFiles } = usePhotoUpload({
@@ -50,7 +102,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
   // page (otherwise page 7 of "all" + filter "Septiembre" = empty grid).
   useEffect(() => {
     setCurrentPage(1);
-  }, [activeMonth, activeTag]);
+  }, [activeMonth, activeTag, activePhotoMonth]);
 
   // ponytail: when the user taps a pagination button the photos change
   // but the viewport stays where it was, so scroll down to the
@@ -84,13 +136,6 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [currentPage]);
-
-  // Sync if initialMonthFilter changes. Treat the prop as a tag name (Copo, Nube, etc.)
-  // — that matches what SecretEffectsManager currently dispatches.
-  useEffect(() => {
-    if (!initialMonthFilter || initialMonthFilter === 'Todos') return;
-    setActiveTag(initialMonthFilter);
-  }, [initialMonthFilter]);
 
   const handleUploadClick = () => fileInputRef.current?.click();
 
@@ -155,6 +200,25 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
     return Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   }, [allPhotos]);
 
+  // Sync if initialMonthFilter changes. The timeline ("MES A MES") sends
+  // a month of the memory ("Septiembre"); a value that IS one of the
+  // photo hashtags (Copo, Nube — what SecretEffectsManager dispatches)
+  // keeps going to the tag filter.
+  useEffect(() => {
+    if (!initialMonthFilter || initialMonthFilter === 'Todos') return;
+    const isTag = allTags.some(
+      ([tag]) => tag.toLowerCase() === initialMonthFilter.toLowerCase()
+    );
+    if (isTag) {
+      setActiveTag(initialMonthFilter);
+      setActivePhotoMonth(null);
+    } else {
+      setActivePhotoMonth(initialMonthFilter);
+      setActiveTag(null);
+      setActiveMonth(null);
+    }
+  }, [initialMonthFilter, allTags]);
+
   // Combined filter (month AND tag), sorted by upload date desc.
   const filteredPhotos = useMemo(() => {
     let result = allPhotos;
@@ -166,12 +230,15 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
         return key === activeMonth;
       });
     }
+    if (activePhotoMonth) {
+      result = result.filter((p) => sameMonth(p.month, activePhotoMonth));
+    }
     if (activeTag) {
       const target = activeTag.toLowerCase();
       result = result.filter((p) => p.tags.some((t) => t.toLowerCase() === target));
     }
     return [...result].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
-  }, [allPhotos, activeMonth, activeTag]);
+  }, [allPhotos, activeMonth, activePhotoMonth, activeTag]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPhotos.length / PAGE_SIZE));
 
@@ -207,11 +274,22 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
         className="hidden"
       />
 
+      {/* ── AC1: la cabecera de la galería es una composición 3D ───────────
+          Los paneles de vidrio flotan a distintas profundidades y el
+          conjunto se inclina con el puntero (sólo mouse: sin tilt en
+          táctil y nada con movimiento reducido). */}
+      <div
+        className="gallery-3d"
+        style={{ perspective: `${PERSPECTIVE}px` }}
+        onPointerMove={tiltOn ? (e) => applyTilt(e.currentTarget, e, HEADER_TILT) : undefined}
+        onPointerLeave={tiltOn ? resetTilt : undefined}
+      >
+      <div className="gallery-3d-stage">
       {/* ponytail: la subida a la galería pública es directa — el botón
           vive SIEMPRE visible, sin depender del toggle de modo edición.
           Las acciones destructivas (borrar todas) quedan en la toolbar
           de edit mode de abajo, donde siguen protegidas por EDIT_TOKEN. */}
-      <div className="mb-4 mx-auto max-w-2xl bg-[#ff85a1]/8 border border-[#ff85a1]/25 rounded-2xl p-3">
+      <div className="gallery-3d-panel gallery-3d-panel--upload mb-4 mx-auto max-w-2xl bg-[#ff85a1]/8 border border-[#ff85a1]/25 rounded-2xl p-3">
         <div className="flex items-center justify-end gap-3 flex-wrap">
           <span className="text-[11px] text-stone-400 font-light hidden sm:inline">
             {apiPhotos.length} fotos guardadas
@@ -261,7 +339,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="mb-6 mx-auto max-w-2xl bg-gradient-to-r from-[#ffd166]/15 via-[#ff85a1]/20 to-[#ff4d6d]/15 border border-[#ffd166]/50 rounded-2xl p-4 shadow-lg shadow-[#ffd166]/10"
+            className="gallery-3d-panel gallery-3d-panel--edit mb-6 mx-auto max-w-2xl bg-gradient-to-r from-[#ffd166]/15 via-[#ff85a1]/20 to-[#ff4d6d]/15 border border-[#ffd166]/50 rounded-2xl p-4 shadow-lg shadow-[#ffd166]/10"
           >
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div className="flex items-center gap-2">
@@ -311,7 +389,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
       </AnimatePresence>
 
       {/* Section Header */}
-      <div className="text-center max-w-2xl mx-auto mb-10">
+      <div className="gallery-3d-panel gallery-3d-panel--title glass-panel rounded-3xl text-center max-w-2xl mx-auto mb-6 px-5 py-6">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -335,8 +413,8 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
       </div>
 
       {/* Filters: fecha de carga (upload month) + hashtag */}
-      <div className="mb-8">
-        <div className="flex items-center justify-center gap-1.5 flex-wrap mb-3">
+      <div className="gallery-3d-panel gallery-3d-panel--months glass-card rounded-3xl px-4 py-3 mb-4">
+        <div className="flex items-center justify-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mr-2 flex items-center gap-1">
             <Calendar className="w-3 h-3 text-[#ff85a1]" />
             <span>Fecha de carga:</span>
@@ -349,7 +427,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
               <button
                 key={b.key}
                 type="button"
-                onClick={() => setActiveMonth(isActive ? null : b.key)}
+                onClick={() => { setActiveMonth(isActive ? null : b.key); setActivePhotoMonth(null); }}
                 className={`px-3 py-1 rounded-full text-xs transition-all duration-150 cursor-pointer border ${
                   isActive
                     ? 'bg-[#ff85a1]/30 border-[#ff85a1] text-white font-bold'
@@ -364,6 +442,11 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
             );
           })}
         </div>
+      </div>
+
+      {/* El muro de hashtags: los 8 más usados y, detrás del "ver más",
+          el resto (AC4). */}
+      <div className="gallery-3d-panel gallery-3d-panel--tags glass-card rounded-3xl px-4 py-3 mb-8">
         <div className="flex items-center justify-center gap-1.5 flex-wrap">
           <span className="text-[11px] font-semibold uppercase tracking-wider text-stone-400 mr-2 flex items-center gap-1">
             <Hash className="w-3 h-3 text-[#ff85a1]" />
@@ -371,13 +454,13 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
           </span>
           {allTags.length === 0 ? (
             <span className="text-[11px] text-stone-500 italic">Sin hashtags</span>
-          ) : allTags.map(([tag, count]) => {
+          ) : visibleTags(allTags, tagsExpanded, TAG_LIMIT).map(([tag, count]) => {
             const isActive = activeTag === tag;
             return (
               <button
                 key={tag}
                 type="button"
-                onClick={() => setActiveTag(isActive ? null : tag)}
+                onClick={() => { setActiveTag(isActive ? null : tag); setActivePhotoMonth(null); }}
                 className={`px-2.5 py-1 rounded-full text-xs transition-all duration-150 cursor-pointer border ${
                   isActive
                     ? 'bg-[#ff85a1]/30 border-[#ff85a1] text-white font-bold'
@@ -391,7 +474,18 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
               </button>
             );
           })}
+          {allTags.length > TAG_LIMIT && (
+            <button
+              type="button"
+              onClick={() => setTagsExpanded((v) => !v)}
+              className="px-2.5 py-1 rounded-full text-xs font-semibold cursor-pointer border border-[#ff85a1]/50 bg-[#ff85a1]/20 text-[#ffe5ec] hover:bg-[#ff85a1]/35 transition-colors"
+            >
+              {tagsExpanded ? 'ver menos' : 'ver más'}
+            </button>
+          )}
         </div>
+      </div>
+      </div>
       </div>
 
       {/* Active Filter Result Summary */}
@@ -399,15 +493,26 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
         <span>
           Mostrando <strong className="text-white">{filteredPhotos.length}</strong> recuerdos
         </span>
-        {(activeMonth || activeTag) && (
-          <button
-            type="button"
-            onClick={() => { setActiveMonth(null); setActiveTag(null); }}
-            className="text-[#ff85a1] hover:underline cursor-pointer"
-          >
-            Restablecer filtros
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {activePhotoMonth && (
+            <button
+              type="button"
+              onClick={() => setActivePhotoMonth(null)}
+              className="px-2.5 py-1 rounded-full border border-[#ff85a1]/50 bg-[#ff85a1]/20 text-[#ffe5ec] hover:bg-[#ff85a1]/35 transition-colors cursor-pointer"
+            >
+              Mes: {activePhotoMonth} ✕
+            </button>
+          )}
+          {(activeMonth || activeTag || activePhotoMonth) && (
+            <button
+              type="button"
+              onClick={() => { setActiveMonth(null); setActiveTag(null); setActivePhotoMonth(null); }}
+              className="text-[#ff85a1] hover:underline cursor-pointer"
+            >
+              Restablecer filtros
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Responsive Masonry Grid taking full width.
@@ -433,19 +538,38 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ duration: 0.35, delay: (index % 6) * 0.04 }}
-                whileHover={{ y: -6, scale: 1.02 }}
-                onClick={() => setActivePhoto(photo)}
-                className="group relative rounded-3xl overflow-hidden glass-card cursor-pointer shadow-lg aspect-[3/4] md:aspect-[4/5] bg-[#1a0c18] border border-[#ff85a1]/20 hover:border-[#ff85a1]/60 select-none"
+                className="gallery-card3d-perspective"
               >
-                <img
-                  src={photo.thumbnailUrl || photo.filePath}
-                  alt={photo.caption}
-                  loading="lazy"
-                  className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
-                />
+              {/* ponytail: la foto es una tarjeta 3D — al pasar el puntero
+                  o al enfocarla con el teclado se levanta con inclinación
+                  y profundidad, y el panel del pie avanza hacia el
+                  espectador. Al salir vuelve a su lugar (AC2). */}
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label={photo.caption || `Foto de ${photo.month} ${photo.year}`}
+                onClick={() => setActivePhoto(photo)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setActivePhoto(photo);
+                  }
+                }}
+                onPointerMove={tiltOn ? (e) => applyTilt(e.currentTarget, e, CARD_TILT) : undefined}
+                onPointerLeave={tiltOn ? resetTilt : undefined}
+                className="gallery-card3d group relative rounded-3xl glass-card cursor-pointer shadow-lg aspect-[3/4] md:aspect-[4/5] bg-[#1a0c18] border border-[#ff85a1]/20 hover:border-[#ff85a1]/60 select-none"
+              >
+                <div className="gallery-card3d-media absolute inset-0 overflow-hidden rounded-3xl">
+                  <img
+                    src={photo.thumbnailUrl || photo.filePath}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-108 transition-transform duration-700 ease-out"
+                  />
 
-                {/* Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
+                  {/* Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity" />
+                </div>
 
                 {/* Top Month/Date Badge */}
                 <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-black/60 backdrop-blur-md text-[10px] font-semibold text-[#ffe5ec] border border-white/10 flex items-center gap-1">
@@ -479,7 +603,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
                 )}
 
                 {/* Bottom Caption and Tags */}
-                <div className="absolute bottom-0 inset-x-0 p-4 transform translate-y-1 group-hover:translate-y-0 transition-transform">
+                <div className="gallery-card3d-caption absolute bottom-0 inset-x-0 p-4 rounded-b-3xl">
                   {/* ponytail: hide the caption row entirely when empty — no "Sin descripción" placeholder. */}
                   {photo.caption && (
                     <p className="text-xs text-white line-clamp-2 font-medium drop-shadow mb-2 leading-snug">
@@ -527,6 +651,7 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
                     </div>
                   </div>
                 </div>
+              </div>
               </motion.div>
             );
           })}

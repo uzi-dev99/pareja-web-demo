@@ -16,13 +16,12 @@ import {
 } from 'lucide-react';
 import { timelineEvents, photos } from '../data/content';
 import { Photo, TimelineEvent } from '../types';
-import { MonthCard, MonthCardsCylinder, TimelineCarousel } from './TimelineCarousel';
+import { TimelineCarousel } from './TimelineCarousel';
 import { usePhotos } from '../hooks/usePhotos';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { AddMemoryModal } from './AddMemoryModal';
 import { EditableText } from './EditableText';
 import { MONTHS_PER_PAGE, monthKey, monthOrdinal, visibleTimeline } from '../utils/timelineMonths';
-import { mediaUrl } from '../utils/carousel3d';
 
 interface TimelineProps {
   onOpenGalleryMonth?: (month: string) => void;
@@ -151,41 +150,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   // muestran.
   const { visible: visibleEvents, months } = visibleTimeline(uniqueTimelineEvents, visibleMonths);
 
-  // ponytail: the 3D cylinder is the album overview — one card per month
-  // recap: the month's photo and title in front, its memory in the back.
-  // The cover comes from the same sources as the list below (server
-  // carousel override, static images, single photo).
-  const monthCards: MonthCard[] = uniqueTimelineEvents
-    .filter((ev) => ev.kind === 'month')
-    .map((ev) => {
-      const override = carouselOverrides[ev.monthAnchor] ?? [];
-      const staticImages = ev.images ?? [];
-      const single = ev.imageId ? photos.find((p) => p.id === ev.imageId) : undefined;
-      const media = [
-        ...override.map((p) => ({
-          url: mediaUrl(p.filePath, p.thumbnailUrl, p.mediaType === 'video'),
-          isVideo: p.mediaType === 'video'
-        })),
-        ...staticImages.map((img) => ({
-          url: mediaUrl(img.url, undefined, img.mediaType === 'video'),
-          isVideo: img.mediaType === 'video'
-        })),
-        ...(single
-          ? [{
-              url: mediaUrl(single.filePath, single.thumbnailUrl, single.mediaType === 'video'),
-              isVideo: single.mediaType === 'video'
-            }]
-          : [])
-      ];
-      return {
-        id: ev.id,
-        month: ev.month,
-        year: ev.year,
-        title: ev.title,
-        text: ev.text,
-        photos: media
-      };
-    });
+  // ponytail: el 3D cilíndrico de tarjetas de mes (PWD-497) se fue a la
+  // galería (VK-524): acá queda la lista plana de mes a mes.
 
   return (
     <section
@@ -240,12 +206,6 @@ export const Timeline: React.FC<TimelineProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
-
-      {/* 3D month-card cylinder (PWD-497) — the hint and the pause button
-          live inside it: they only make sense in the 3D version. */}
-      <div className="mb-12">
-        <MonthCardsCylinder cards={monthCards} />
       </div>
 
       {/* Central Illuminated Progress Line & Wide Two-Column Spread */}
@@ -377,7 +337,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   >
                     {/* Header with Month & Date */}
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-4 pb-3 border-b border-[#ff85a1]/20">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         {isEvent ? (
                           // ponytail: event cards show the full date in the
                           // header badge instead of just month + year.
@@ -403,6 +363,16 @@ export const Timeline: React.FC<TimelineProps> = ({
                             before="• "
                           />
                         )}
+                        {/* ponytail: "MES A MES" sigue abriendo la galería
+                            con su filtro de mes (AC3). */}
+                        <button
+                          type="button"
+                          onClick={() => onOpenGalleryMonth?.(event.month)}
+                          className="px-2.5 py-1 rounded-full text-[11px] font-semibold border border-[#ff85a1]/40 bg-[#ff85a1]/15 text-[#ffe5ec] hover:bg-[#ff85a1]/30 transition-colors cursor-pointer flex items-center gap-1"
+                        >
+                          <ImageIcon className="w-3 h-3" />
+                          <span>Ver fotos de {event.month}</span>
+                        </button>
                       </div>
 
                       <div className="flex items-center gap-2">
