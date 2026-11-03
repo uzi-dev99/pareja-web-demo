@@ -209,14 +209,25 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
   // ponytail: the filter is applied once per value: with the tags in the
   // deps the effect re-ran after every upload/edit/delete and re-applied
   // the month, wiping the tag the visitor had just picked.
-  const appliedFilter = useRef<string | undefined>(undefined);
+  //
+  // ponytail: the guard also remembers HOW the value was classified.
+  // The photos arrive AFTER the first render, so the first pass read an
+  // empty tag list and classified a hashtag ("Copo") as a month; the
+  // guard then dropped the second pass (the value had not changed) and
+  // the gallery answered "Mostrando 0 recuerdos". When the
+  // classification changes, the filter is applied again.
+  const appliedFilter = useRef<{ value: string; isTag: boolean } | undefined>(undefined);
   useEffect(() => {
-    if (appliedFilter.current === initialMonthFilter) return;
-    appliedFilter.current = initialMonthFilter;
-    if (!initialMonthFilter || initialMonthFilter === 'Todos') return;
+    if (!initialMonthFilter || initialMonthFilter === 'Todos') {
+      appliedFilter.current = undefined;
+      return;
+    }
     const isTag = allTags.some(
       ([tag]) => tag.toLowerCase() === initialMonthFilter.toLowerCase()
     );
+    const applied = appliedFilter.current;
+    if (applied && applied.value === initialMonthFilter && applied.isTag === isTag) return;
+    appliedFilter.current = { value: initialMonthFilter, isTag };
     if (isTag) {
       setActiveTag(initialMonthFilter);
       setActivePhotoMonth(null);

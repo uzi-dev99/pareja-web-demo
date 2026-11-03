@@ -151,9 +151,9 @@ export const CatTamagotchiBox: React.FC = () => {
       personality: 'Peluche viviente con ojos de zafiro',
       // ponytail: Copo's sprite is the cream ragdoll with brown points —
       // pick a soft cream tone so the bubble / bowl tint reads "gatita
-      // crema" instead of the previous slate that didn't match.
-      themeColor: '#f5f5f4',
-      tagColor: 'bg-[#f5f5f4]/15 text-[#f5f5f4] border-[#f5f5f4]/40',
+      // crema" and not "blanca" (el color y el comentario coinciden).
+      themeColor: '#f3e8d3',
+      tagColor: 'bg-[#f3e8d3]/15 text-[#f3e8d3] border-[#f3e8d3]/40',
       x: 82,
       y: 50,
       targetX: 78,

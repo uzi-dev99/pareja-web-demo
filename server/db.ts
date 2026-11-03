@@ -88,9 +88,43 @@ let _db: Database | null = null;
 export function getDb(): Database {
   if (_db) return _db;
   _db = new Database(DB_PATH, { create: true });
-  _db.exec(SCHEMA);
-  seedIfEmpty(_db);
+  initDatabase(_db);
   return _db;
+}
+
+/**
+ * Schema + seed + prune. Exported so a test can run it over a temp DB.
+ */
+export function initDatabase(db: Database): void {
+  db.exec(SCHEMA);
+  seedIfEmpty(db);
+  pruneStaleSeeds(db);
+}
+
+/**
+ * ponytail: a seed row whose file is no longer in content.ts stayed in
+ * the seeded DBs as an orphan (the two mixkit videos were removed): the
+ * gallery showed a broken tile and the LAN DB needed a manual DELETE.
+ * The prune only touches rows whose id is a seed id (a row the owner
+ * uploaded is never one) and only when the file is not in content.ts
+ * anymore: the secret photos are seeded by position, so a row that only
+ * moved inside content.ts keeps its file and survives.
+ */
+function pruneStaleSeeds(db: Database): void {
+  const live = new Set([
+    ...seedPhotos.map((p) => p.filePath),
+    ...seedSecretPhotos.map((s) => s.url)
+  ]);
+  const rows = db
+    .query("SELECT id, file_path FROM photos WHERE id LIKE 'seed-%'")
+    .all() as { id: string; file_path: string }[];
+  const stale = rows.filter((r) => !live.has(r.file_path)).map((r) => r.id);
+  if (stale.length === 0) return;
+  const del = db.prepare('DELETE FROM photos WHERE id = ?');
+  db.transaction(() => {
+    for (const id of stale) del.run(id);
+  })();
+  console.log(`[db] Pruned ${stale.length} stale seed rows.`);
 }
 
 function seedIfEmpty(db: Database): void {

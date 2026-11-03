@@ -163,9 +163,24 @@ export const photos: Photo[] = [
     tags: ['Canela', 'Trufa', 'Copo', 'Nube', 'Michis', 'Gatos', 'Gatas', 'Los 4 Michis']
   },
 
-  // ponytail: los dos videos del seed (mixkit) se sacaron: el CDN de
-  // mixkit ya no sirve esos archivos (403) y el demo no puede mostrar un
-  // video muerto. Un video nuevo, de una fuente viva, se agrega acá.
+  // VIDEO DEL SEED (L2): los dos videos de mixkit se sacaron porque su
+  // CDN ya no los servía (403) y el demo no puede mostrar un video
+  // muerto. Este vive: Wikimedia Commons lo sirve con rangos (curl 206),
+  // es CC BY-SA 3.0 (atribución en docs/stock-photos.md) y no tiene
+  // nada personal: un gato y un puntero laser.
+  {
+    id: 'video-gato-puntero-laser',
+    filePath: 'https://upload.wikimedia.org/wikipedia/commons/transcoded/7/7a/Cat_playing_with_a_laser_pointer.webm/Cat_playing_with_a_laser_pointer.webm.480p.vp9.webm',
+    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Cat_playing_with_a_laser_pointer.webm/960px--Cat_playing_with_a_laser_pointer.webm.jpg',
+    mediaType: 'video',
+    duration: '0:14',
+    caption: 'Video: un gato detrás del puntero laser, el juego que se repite en cada foto.',
+    month: 'Septiembre',
+    year: 2026,
+    dateStr: '09 Sep 2026',
+    location: 'La sala',
+    tags: ['Video', 'Michis', 'Gatos', 'Copo']
+  },
 
   // MOMENTOS DE LA HISTORIA
   {

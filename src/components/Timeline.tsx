@@ -43,6 +43,14 @@ export const Timeline: React.FC<TimelineProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleMonths, setVisibleMonths] = useState(MONTHS_PER_PAGE);
   const [isAddMemoryOpen, setIsAddMemoryOpen] = useState(false);
+  // ponytail: el botón "Ver fotos de {mes}" tiene que mirar las MISMAS
+  // fotos que muestra la galería (las de la DB), no las del seed
+  // estático: con el seed, un mes sin fotos de fábrica (Enero,
+  // Septiembre) no tenía botón aunque la galería tuviera fotos, y al
+  // borrar las fotos de fábrica el botón llevaba a "Mostrando 0
+  // recuerdos". Sin fallback al seed: si la galería no tiene fotos, el
+  // botón no aparece (la galería tampoco las tiene).
+  const { photos: galleryPhotos } = usePhotos('public');
   // ponytail: carousel overrides fetched from API. Key = monthAnchor
   // for month recaps, and eventAnchor for the cumple (kind === 'event').
   // Same server-side carousel bucket either way.
@@ -365,9 +373,9 @@ export const Timeline: React.FC<TimelineProps> = ({
                         )}
                         {/* ponytail: "MES A MES" sigue abriendo la galería
                             con su filtro de mes (AC3). Sólo si el mes tiene
-                            fotos: si no, la galería responde "Mostrando 0
-                            recuerdos". */}
-                        {hasMonthPhotos(event.month, event.year, photos) && (
+                            fotos en la galería (las de la DB): si no, la
+                            galería responde "Mostrando 0 recuerdos". */}
+                        {hasMonthPhotos(event.month, event.year, galleryPhotos) && (
                           <button
                             type="button"
                             onClick={() => onOpenGalleryMonth?.(event.month)}

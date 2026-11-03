@@ -7,6 +7,7 @@ Nothing here comes from a real person, a real photo or a private library.
 | What | Host | Licence | Where used |
 |---|---|---|---|
 | 49 photos (16 gallery, 27 timeline, 6 collage) | https://images.unsplash.com | Unsplash License (https://unsplash.com/license) | URLs in `src/data/content.ts` |
+| 1 video (cat + laser pointer, 480p webm, poster jpg) | https://upload.wikimedia.org | CC BY-SA 3.0 — Clément Bucco-Lechat, "Cat playing with a laser pointer" (Wikimedia Commons) | URLs in `src/data/content.ts` |
 
 ## The owner's art, used with permission
 
