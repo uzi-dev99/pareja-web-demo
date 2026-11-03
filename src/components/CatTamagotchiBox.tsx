@@ -16,11 +16,11 @@ import {
 import { audioEngine } from '../utils/audioSynth';
 import { triggerClickWhisper } from './ClickWhisper';
 import { PetdexCatAvatar } from './PetdexCatAvatar';
-// ponytail: FurnitureLayer was retired when the sanctuary backdrop switched
-// to /box/sanctuary-background.jpg — the new image already contains desk,
-// lamp, rug, bookshelf, etc. The legacy SVG assets still live in
-// public/furniture/ for reuse elsewhere.
+// ponytail: the room is dressed with the furniture SVGs (public/furniture/).
+// The flat sanctuary backdrop was replaced by a CSS wall + floor so the
+// detailed furniture reads as the room instead of fighting a painted one.
 import { applyDragDelta } from '../pets/drag';
+import { FURNITURE, ROOM_FLOOR_TOP } from '../pets/room';
 
 export type CatType = 'orange' | 'black' | 'grey' | 'white';
 
@@ -595,16 +595,47 @@ export const CatTamagotchiBox: React.FC = () => {
           className="relative w-full rounded-3xl border-4 border-[#5e3852] overflow-hidden bg-gradient-to-b from-[#2e192c] via-[#221022] to-[#170918] transition-all duration-700 shadow-[0_25px_60px_rgba(0,0,0,0.75)]"
           style={{ minHeight: '460px', height: '510px' }}
         >
-          {/* Sanctuary background (replaces the old CSS decor + FurnitureLayer). */}
-          <img
-            src="/box/sanctuary-background.jpg"
-            alt=""
-            aria-hidden="true"
-            draggable={false}
-            className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none z-0"
-          />
+          {/* Room: wallpaper + floorboards. The floor line is shared with the
+              cat walking band (see src/pets/room.ts). */}
+          <div aria-hidden="true" className="absolute inset-0 pointer-events-none z-0">
+            <div
+              className="absolute inset-x-0 top-0"
+              style={{
+                height: `${ROOM_FLOOR_TOP}%`,
+                backgroundImage:
+                  'radial-gradient(circle at 84% 6%, rgba(255,236,190,0.10), transparent 55%),' +
+                  'repeating-linear-gradient(90deg, #33202f 0 26px, #2b1a29 26px 52px)',
+              }}
+            />
+            <div
+              className="absolute inset-x-0 bottom-0"
+              style={{
+                top: `${ROOM_FLOOR_TOP}%`,
+                backgroundImage:
+                  'radial-gradient(circle at 84% 12%, rgba(255,209,102,0.16), transparent 42%),' +
+                  'repeating-linear-gradient(0deg, rgba(0,0,0,0.22) 0 2px, rgba(0,0,0,0) 2px 46px),' +
+                  'linear-gradient(180deg, #56394a 0%, #33212f 100%)',
+              }}
+            />
+            <div
+              className="absolute inset-x-0"
+              style={{ top: `${ROOM_FLOOR_TOP}%`, height: 4, background: '#1a0d1b' }}
+            />
+          </div>
 
-          {/* Feed bowls overlay (anchored to the new sanctuary background). */}
+          {/* Furniture (couch, lamp, plants, rug, bed, table, stool). */}
+          {FURNITURE.map((f) => (
+            <img
+              key={f.src}
+              src={f.src}
+              alt=""
+              aria-hidden="true"
+              draggable={false}
+              className={`absolute select-none pointer-events-none ${f.className}`}
+            />
+          ))}
+
+          {/* Feed bowls overlay (on the floor, under the cats). */}
           <div className="absolute inset-0 pointer-events-none z-[1]">
             {cats.map((cat) => (
               <div

@@ -2,17 +2,17 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
  *
- * Ponytail: regression suite for the sanctuary background swap.
+ * Ponytail: regression suite for the pets room scene.
  *
- * Earlier the CatTamagotchi room was dressed by a layered CSS scene +
- * `FurnitureLayer` (Alocasia, Fern, Couch, Rug, etc.) + a long list of
- * inline decorations (fireplace, window, fishtank, polaroid, bowls, …).
- * That whole scene was replaced with a single full-bleed JPG image.
+ * History: the room was a layered CSS scene + `FurnitureLayer` (Alocasia,
+ * Fern, Couch, Rug, …), then a single full-bleed JPG backdrop, and now
+ * again the detailed furniture SVGs — this time over a CSS wall + floor,
+ * so the flat painted backdrop no longer fights the furniture.
  *
  * Tests:
- *  - asset guard: the JPG exists on disk and is non-trivial in size.
- *  - mount guard: `CatTamagotchiBox.tsx` mounts the new image as the
- *    background instead of the old decoration stack.
+ *  - asset guard: the furniture SVGs and the backdrop JPG exist on disk.
+ *  - mount guard: `CatTamagotchiBox.tsx` mounts the furniture layer and
+ *    draws the wall/floor itself instead of painting the room over a JPG.
  *  - removal guard: the old `FurnitureLayer` mount is gone from the
  *    tamagotchi box (the component file may still exist for reuse, but
  *    it is no longer wired into the room).
@@ -33,6 +33,10 @@ const SRC_BOX = fs.readFileSync(
   path.join(import.meta.dir, '..', 'src', 'components', 'CatTamagotchiBox.tsx'),
   'utf8'
 );
+const SRC_ROOM = fs.readFileSync(
+  path.join(import.meta.dir, '..', 'src', 'pets', 'room.ts'),
+  'utf8'
+);
 
 test('sanctuary background JPG exists on disk', () => {
   expect(fs.existsSync(ASSET_PATH)).toBe(true);
@@ -41,22 +45,34 @@ test('sanctuary background JPG exists on disk', () => {
   expect(fs.statSync(ASSET_PATH).size).toBeGreaterThan(10_000);
 });
 
-test('sanctuary background JPG is the new coder-desk variant (size > 100 KB)', () => {
-  // ponytail: both the old and new JPG are high-resolution (~2 MB).
-  // Asserting >100 KB catches a 0-byte silent-fail copy.
-  expect(fs.statSync(ASSET_PATH).size).toBeGreaterThan(100_000);
+test('the furniture SVGs exist on disk', () => {
+  for (const file of [
+    'couch.svg', 'bed.svg', 'rug-oval.svg', 'table-lamp.svg',
+    'coffee-table.svg', 'heart-stool.svg', 'fern.svg', 'alocasia.svg',
+  ]) {
+    const p = path.join(import.meta.dir, '..', 'public', 'furniture', file);
+    expect(fs.existsSync(p), `${file} is missing`).toBe(true);
+    expect(fs.statSync(p).size).toBeGreaterThan(500);
+  }
 });
 
-test('CatTamagotchiBox mounts the new sanctuary background as the room backdrop', () => {
-  // ponytail: the image must be referenced through the public path and
-  // rendered as an absolute-positioned <img> covering the room.
-  expect(SRC_BOX).toMatch(/\/box\/sanctuary-background\.jpg/);
+test('the room mounts the furniture layer', () => {
+  // ponytail: the pieces live in src/pets/room.ts and the box maps them
+  // to <img> tags; the room must not hardcode the paths.
+  expect(SRC_BOX).toMatch(/FURNITURE/);
+  expect(SRC_ROOM).toMatch(/'\/furniture\/couch\.svg'/);
+});
+
+test('the room paints its own wall and floor instead of the flat backdrop', () => {
+  // ponytail: the JPG carries its own painted furniture; stacking the
+  // detailed SVGs on top of it would double every piece.
+  expect(SRC_BOX).not.toMatch(/\/box\/sanctuary-background\.jpg/);
+  expect(SRC_BOX).toMatch(/ROOM_FLOOR_TOP/);
 });
 
 test('CatTamagotchiBox no longer mounts <FurnitureLayer />', () => {
-  // ponytail: <FurnitureLayer /> was the layered SVG dressing. Its mount
-  // in CatTamagotchiBox was removed because the new background image
-  // already contains desk, lamp, rug, bookshelf, etc.
+  // ponytail: <FurnitureLayer /> was the old SVG dressing component; the
+  // room now uses the layout in src/pets/room.ts.
   expect(SRC_BOX).not.toMatch(/<FurnitureLayer\b/);
 });
 
@@ -88,10 +104,10 @@ test('Dar Comidita button uses the unified glassmorphism style', () => {
   expect(SRC_BOX).not.toMatch(/from-\[#ffd166\]\s+to-\[#f39c12\]/);
 });
 
-test('CatTamagotchiBox overlays 4 feed bowls above the background image', () => {
-  // ponytail: the new background image has no bowls in it. The bowl
-  // overlay lives between the <img> and the cats, so the cats render
-  // on top of their bowls when eating.
+test('CatTamagotchiBox overlays 4 feed bowls above the room', () => {
+  // ponytail: the room has no bowls in it. The bowl overlay lives between
+  // the furniture and the cats, so the cats render on top of their bowls
+  // when eating.
   expect(SRC_BOX).toMatch(/bowl-/);
   expect(SRC_BOX).toMatch(/foodInBowls\s*&&/);
   expect(SRC_BOX).toMatch(/28\s*\+\s*idx\s*\*\s*14/);

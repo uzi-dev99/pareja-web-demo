@@ -13,12 +13,18 @@ import { test, expect } from 'bun:test';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
-// Minimal WebP RIFF header parser — extracts width & height from VP8/VP8L chunks.
-// VP8X (extended) is not supported here; none of the Petdex sheets use it.
+// Minimal WebP RIFF header parser — extracts width & height from VP8/VP8L/VP8X chunks.
+// VP8X is the extended container: lossy WebP with an alpha channel (the
+// sprite sheets) is stored there, with the canvas size in bytes 24-29.
 function webpDimensions(buf: Buffer): { width: number; height: number } {
   if (buf.toString('ascii', 0, 4) !== 'RIFF') throw new Error('not a RIFF file');
   if (buf.toString('ascii', 8, 12) !== 'WEBP') throw new Error('not a WEBP file');
   const fourCC = buf.toString('ascii', 12, 16);
+  if (fourCC === 'VP8X') {
+    const w = 1 + (buf[24]! | (buf[25]! << 8) | (buf[26]! << 16));
+    const h = 1 + (buf[27]! | (buf[28]! << 8) | (buf[29]! << 16));
+    return { width: w, height: h };
+  }
   if (fourCC === 'VP8 ') {
     const w = buf.readUInt16LE(26) & 0x3fff;
     const h = buf.readUInt16LE(28) & 0x3fff;
