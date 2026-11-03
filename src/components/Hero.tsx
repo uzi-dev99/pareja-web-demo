@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Heart, Sparkles, ArrowDown } from 'lucide-react';
 import { siteMeta, photos as demoPhotos } from '../data/content';
@@ -8,6 +8,74 @@ import { usePhotos } from '../hooks/usePhotos';
 import { ImageMarquee } from './ImageMarquee';
 import { isVideoUrl, prefersReducedMotion } from '../utils/carousel3d';
 import type { Photo } from '../types';
+// ponytail: type-only import — it is erased at build time, so hls.js does
+// not land in the main chunk. The library itself is loaded with a dynamic
+// import inside the effect (and only when the browser needs it).
+import type Hls from 'hls.js';
+
+// Stream del prompt de PWD-496: una onda abstracta sobre negro, sin marcas
+// de marca. PWD-522 lo mudó del CTA al hero.
+const HLS_SRC =
+  'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8';
+const POSTER =
+  'https://image.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q/thumbnail.jpg?width=1920';
+
+// ponytail: el velo que asegura el contraste del heading sobre el video.
+// Es radial (como el del CTA de PWD-496): denso bajo el título, más suave
+// en los bordes, así la cinta se ve sin tapar el texto. Con el frame más
+// claro posible (blanco) el heading queda en 14:1 y el subtítulo en 10:1
+// (lo chequea el test del AC1).
+export const HERO_VEEL_ALPHA = 0.9;
+const HERO_VEEL = `radial-gradient(ellipse 60% 45% at 50% 22%, rgba(13,5,12,${HERO_VEEL_ALPHA}) 0%, rgba(13,5,12,0.72) 55%, rgba(13,5,12,0.35) 100%)`;
+
+type HlsModule = { default: typeof Hls };
+
+/**
+ * Plays an HLS stream on a video element and returns its cleanup.
+ *
+ * Safari plays HLS natively; the rest needs hls.js, which is loaded with a
+ * dynamic import so it never weighs on the main chunk. When neither path
+ * works the video keeps its poster: the section never breaks.
+ *
+ * `loadHls` is a parameter so the test can drive the fallback without a
+ * browser (and without downloading the library).
+ */
+export async function startStream(
+  video: HTMLVideoElement,
+  src: string,
+  loadHls: () => Promise<HlsModule> = () => import('hls.js')
+): Promise<() => void> {
+  // Safari reproduce HLS nativo.
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = src;
+    return () => {
+      video.removeAttribute('src');
+      video.load();
+    };
+  }
+
+  let HlsCtor: typeof Hls;
+  try {
+    ({ default: HlsCtor } = await loadHls());
+  } catch {
+    return () => {};
+  }
+  if (!HlsCtor?.isSupported()) return () => {};
+
+  const hls = new HlsCtor({ capLevelToPlayerSize: true });
+  hls.loadSource(src);
+  hls.attachMedia(video);
+  // Un error fatal deja el poster de fondo: el layout no se rompe. El
+  // <video> queda con la MediaSource muerta (pantalla negra), así que hay
+  // que resetear el elemento para que vuelva a mostrar el poster.
+  hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+    if (!data.fatal) return;
+    hls.destroy();
+    video.removeAttribute('src');
+    video.load();
+  });
+  return () => hls.destroy();
+}
 
 // ponytail: source of truth is PHOTO_COMPLIMENT_1..12 in HARDCODED_TEXTS.md.
 // Do not add lines here — update the .md inventory instead, or the
@@ -96,6 +164,26 @@ export const Hero: React.FC = () => {
   const [activeCompliment, setActiveCompliment] = useState<FloatingPhotoCompliment | null>(null);
   // ponytail: the OS setting, read once at mount.
   const [reduced] = useState(prefersReducedMotion);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // ponytail: el hero es lo primero de la página, así que el stream arranca
+  // al montar (no hace falta esperar a que entre en pantalla). Con
+  // movimiento reducido el fondo queda en el poster, quieto.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || reduced) return;
+
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void startStream(video, HLS_SRC).then((cleanup) => {
+      if (cancelled) cleanup();
+      else stop = cleanup;
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [reduced]);
 
   // ponytail: pull from the same API the Gallery uses so uploads show up here live.
   // (was: `photos` from content.ts — became stale the moment you uploaded the first photo.)
@@ -145,15 +233,38 @@ export const Hero: React.FC = () => {
         id="inicio"
         className="relative min-h-screen w-full flex flex-col items-center pt-24 pb-12 overflow-hidden"
       >
+        {/* Fondo liquid ribbon (PWD-522): estaba en el CTA, el owner lo pidió
+            detrás del heading y de la tira de fotos. La onda del stream vive
+            en la mitad del frame: sin este shift caería justo detrás de las
+            fotos (opacas) y no se vería; arriba, detrás del título. */}
+        <video
+          ref={videoRef}
+          poster={POSTER}
+          autoPlay
+          loop
+          muted
+          playsInline
+          aria-hidden="true"
+          className="absolute inset-0 z-0 h-full w-full object-cover"
+          style={{ transform: 'translateY(-28%)' }}
+        />
+
+        {/* Velo: sin esto el texto no se lee sobre las zonas claras del video */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 z-[1]"
+          style={{ background: HERO_VEEL }}
+        />
+
         {/* Soft Cozy Ambient Golden & Rosé Gradients */}
-        <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute inset-0 pointer-events-none z-[2]">
           <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[450px] sm:w-[850px] h-[350px] sm:h-[550px] rounded-full bg-[#ffd166]/10 blur-[140px]" />
           <div className="absolute top-1/3 left-6 w-80 h-80 rounded-full bg-[#ff758f]/12 blur-[110px]" />
           <div className="absolute bottom-20 right-8 w-96 h-96 rounded-full bg-[#ffd166]/8 blur-[130px]" />
         </div>
 
         {/* Floating Fairy Lights & Twinkles */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none overflow-hidden z-[3]">
           {[...Array(9)].map((_, i) => (
             <motion.div
               key={i}

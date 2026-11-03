@@ -1,28 +1,14 @@
 /**
- * PWD-496 — cierre cinematográfico del álbum.
- *
- * Adaptación de _project/refs/liquid-cta-footer-prompt.md: fondo HLS con
- * poster de respaldo, dos degradados que funden el video con la página
- * negra, heading serif itálico centrado, dos botones liquid-glass cableados
+ * PWD-496 — cierre cinematográfico del álbum. PWD-522 — el fondo liquid se
+ * mudó al hero: acá queda un fondo calmo (el gradiente oscuro del sitio),
+ * el heading serif itálico centrado, los dos botones liquid-glass cableados
  * a acciones que el sitio ya tenía y la barra mínima del footer.
  *
  * El copy es del sitio (dedicatoria + frase), en español.
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { ArrowUpRight } from 'lucide-react';
-// ponytail: type-only import — it is erased at build time, so hls.js does
-// not land in the main chunk. The library itself is loaded with a dynamic
-// import inside the effect (and only when the browser needs it).
-import type Hls from 'hls.js';
-
-// Stream del prompt: una onda abstracta sobre negro, sin marcas de marca.
-// Safari reproduce HLS nativo; el resto necesita hls.js (única dependencia
-// nueva de la tarjeta, justificada en AC2).
-const HLS_SRC =
-  'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8';
-const POSTER =
-  'https://image.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q/thumbnail.jpg?width=1920';
 
 // ponytail: los estilos liquid-glass viven acá y no en index.css porque la
 // tarjeta no puede tocar ese archivo. Un <style> sin capa gana a las
@@ -63,88 +49,7 @@ interface CtaSectionProps {
   onOpenSecretModal: () => void;
 }
 
-type HlsModule = { default: typeof Hls };
-
-/**
- * Plays an HLS stream on a video element and returns its cleanup.
- *
- * Safari plays HLS natively; the rest needs hls.js, which is loaded with a
- * dynamic import so it never weighs on the main chunk. When neither path
- * works the video keeps its poster: the section never breaks.
- *
- * `loadHls` is a parameter so the test can drive the fallback without a
- * browser (and without downloading the library).
- */
-export async function startStream(
-  video: HTMLVideoElement,
-  src: string,
-  loadHls: () => Promise<HlsModule> = () => import('hls.js')
-): Promise<() => void> {
-  // Safari reproduce HLS nativo.
-  if (video.canPlayType('application/vnd.apple.mpegurl')) {
-    video.src = src;
-    return () => {
-      video.removeAttribute('src');
-      video.load();
-    };
-  }
-
-  let HlsCtor: typeof Hls;
-  try {
-    ({ default: HlsCtor } = await loadHls());
-  } catch {
-    return () => {};
-  }
-  if (!HlsCtor?.isSupported()) return () => {};
-
-  const hls = new HlsCtor({ capLevelToPlayerSize: true });
-  hls.loadSource(src);
-  hls.attachMedia(video);
-  // Un error fatal deja el poster de fondo: el layout no se rompe.
-  hls.on(HlsCtor.Events.ERROR, (_event, data) => {
-    if (data.fatal) hls.destroy();
-  });
-  return () => hls.destroy();
-}
-
 export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenSecretModal }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const sectionRef = useRef<HTMLElement>(null);
-  // ponytail: el stream arranca cuando la sección entra en pantalla: es la
-  // última de la página y hasta entonces no se ve.
-  const [inView, setInView] = useState(false);
-
-  useEffect(() => {
-    const el = sectionRef.current;
-    if (!el) return;
-    const io = new IntersectionObserver(
-      ([entry]) => setInView(entry.isIntersecting),
-      { threshold: 0.1 }
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (!inView) return;
-    const video = videoRef.current;
-    if (!video) return;
-
-    // ponytail: con movimiento reducido el fondo queda en el poster, quieto.
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-
-    let stop: (() => void) | undefined;
-    let cancelled = false;
-    void startStream(video, HLS_SRC).then((cleanup) => {
-      if (cancelled) cleanup();
-      else stop = cleanup;
-    });
-    return () => {
-      cancelled = true;
-      stop?.();
-    };
-  }, [inView]);
-
   const scrollToGallery = () => {
     document.querySelector('#galeria')?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -152,41 +57,17 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenSecretModal }) => 
   return (
     <section
       id="cta"
-      ref={sectionRef}
       className="relative z-10 isolate overflow-hidden bg-[#0d050c] px-6 py-24 text-center md:px-16 md:py-32 lg:px-24"
     >
       <style>{LIQUID_GLASS_CSS}</style>
 
-      {/* Fondo HLS con poster de respaldo */}
-      <video
-        ref={videoRef}
-        poster={POSTER}
-        autoPlay
-        loop
-        muted
-        playsInline
-        aria-hidden="true"
-        className="absolute inset-0 z-0 h-full w-full object-cover"
-      />
-
-      {/* Fundidos: el video se disuelve en el negro de la página */}
+      {/* Fondo calmo (PWD-522): el gradiente oscuro del sitio, sin video */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 top-0 z-[1] h-[200px]"
-        style={{ background: 'linear-gradient(to bottom, #0d050c, transparent)' }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[200px]"
-        style={{ background: 'linear-gradient(to top, #0d050c, transparent)' }}
-      />
-      {/* Velo: sin esto el texto no se lee sobre las zonas claras del video */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-[1]"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'radial-gradient(ellipse 75% 70% at 50% 50%, rgba(13,5,12,0.85) 0%, rgba(13,5,12,0.55) 60%, rgba(13,5,12,0.15) 100%)'
+            'radial-gradient(ellipse 70% 60% at 50% 35%, rgba(255,113,140,0.12) 0%, rgba(13,5,12,0) 70%)'
         }}
       />
 
