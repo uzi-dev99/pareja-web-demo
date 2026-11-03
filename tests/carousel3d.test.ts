@@ -23,6 +23,8 @@ import {
   cardPose,
   cylinderLayout,
   damp,
+  isVideoUrl,
+  mediaUrl,
   smoothstep,
   virtualIndex,
   wrapOffset
@@ -120,8 +122,57 @@ test('AC3: un .mp4 etiquetado como imagen se renderiza como video, no como img',
   // ponytail: el bucket de fotos devuelve los dos videos del seed con la
   // extension .mp4 pero etiquetados como image — un <img> con un .mp4
   // queda roto (y el alt se imprime sobre la tarjeta).
-  expect(SRC).toMatch(/mp4/);
   expect(SRC).toMatch(/preload="metadata"/);
   // los dos carruseles (el 3D y el plano) usan el mismo helper
   expect(SRC.match(/isVideoUrl\(/g)?.length).toBeGreaterThanOrEqual(2);
+});
+
+test('isVideoUrl tells a video file from an image (called, not grepped)', () => {
+  expect(isVideoUrl('https://assets.mixkit.co/videos/preview/clip-33318-large.mp4')).toBe(true);
+  expect(isVideoUrl('https://x/clip.MP4?token=1')).toBe(true);
+  expect(isVideoUrl('https://x/clip.webm#t=2')).toBe(true);
+  expect(isVideoUrl('https://x/foto.jpg')).toBe(false);
+  expect(isVideoUrl('https://x/foto.mp4.png')).toBe(false);
+  expect(isVideoUrl('https://x/foto')).toBe(false);
+});
+
+test('a video renders its own file, not its poster image', () => {
+  // un .mp4 con thumbnail (poster)would play a jpg: black card
+  expect(mediaUrl('/uploads/clip.mp4', '/uploads/thumb-clip.jpg', true)).toBe('/uploads/clip.mp4');
+  expect(mediaUrl('/uploads/foto.jpg', '/uploads/thumb-foto.jpg', false)).toBe('/uploads/thumb-foto.jpg');
+  expect(mediaUrl('/uploads/foto.jpg', undefined, false)).toBe('/uploads/foto.jpg');
+});
+
+test('the card fades out completely before it leaves the cylinder', () => {
+  // the edge fade (past the second slot) has to exist: without it the card
+  // pops in and out of the scene
+  expect(cardPose(2.5, M).opacity).toBeLessThan(0.6);
+  expect(cardPose(2.5, M).opacity).toBeGreaterThan(0);
+  expect(cardPose(3, M).opacity).toBe(0);
+  expect(cardPose(1.5, M).opacity).toBe(1);
+});
+
+test('with six months or fewer no card jumps edge to edge on the wrap', () => {
+  // the wrap happens at |offset| = count/2: the card sitting there has to be
+  // invisible, or it teleports from one screen edge to the other
+  for (const count of [3, 4, 5, 6]) {
+    const poses = cylinderLayout(count / 2, count, M);
+    const farthest = poses.reduce((a, b) => (Math.abs(b.x) > Math.abs(a.x) ? b : a));
+    expect(farthest.opacity).toBe(0);
+  }
+});
+
+test('with nine months the fade still ends at the third slot', () => {
+  const poses = cylinderLayout(0, 9, M);
+  expect(poses[2].opacity).toBe(1);
+  expect(poses[3].opacity).toBe(0);
+  expect(poses[4].visible).toBe(false);
+});
+
+test('with two months or fewer no card disappears', () => {
+  // no hidden slot to fade into: the cards keep the base opacity
+  for (const count of [1, 2]) {
+    cylinderLayout(0, count, M).forEach((pose) => expect(pose.opacity).toBe(1));
+    cylinderLayout(0.5, count, M).forEach((pose) => expect(pose.opacity).toBe(1));
+  }
 });

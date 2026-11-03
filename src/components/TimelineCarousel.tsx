@@ -4,12 +4,7 @@ import { ChevronLeft, ChevronRight, Heart, Sparkles, Upload } from 'lucide-react
 import { Photo } from '../types';
 import { audioEngine } from '../utils/audioSynth';
 import { compressImage } from '../utils/compressImage';
-import { PERSPECTIVE, cylinderLayout, damp } from '../utils/carousel3d';
-
-// ponytail: el bucket de fotos devuelve los dos videos del seed con la
-// extension .mp4 pero etiquetados como image — un <img> con un .mp4 queda
-// roto (y su alt se imprime sobre la foto), asi que la extension manda.
-export const isVideoUrl = (url: string): boolean => /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+import { PERSPECTIVE, cylinderLayout, damp, isVideoUrl, mediaUrl, prefersReducedMotion } from '../utils/carousel3d';
 
 interface TimelineCarouselProps {
   images: Photo[];
@@ -41,6 +36,48 @@ interface FloatingCompliment {
   x: number;
   y: number;
 }
+
+/**
+ * A video that only plays when the OS allows motion and the card is on
+ * screen: no autoplay under reduced motion, and no decoding off-screen.
+ */
+const MediaVideo: React.FC<{ src: string; className?: string }> = ({ src, className }) => {
+  const ref = useRef<HTMLVideoElement>(null);
+  const [inView, setInView] = useState(false);
+  const [reduced] = useState(prefersReducedMotion);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.2 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  const playing = inView && !reduced;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (playing) void el.play().catch(() => {});
+    else el.pause();
+  }, [playing]);
+
+  return (
+    <video
+      ref={ref}
+      src={src}
+      muted
+      loop
+      playsInline
+      preload="metadata"
+      autoPlay={playing}
+      className={className}
+    />
+  );
+};
 
 export const TimelineCarousel: React.FC<TimelineCarouselProps> = ({
   images,
@@ -241,13 +278,8 @@ export const TimelineCarousel: React.FC<TimelineCarouselProps> = ({
             className="absolute inset-0"
           >
             {isVideoUrl(currentImage.thumbnailUrl || currentImage.filePath) ? (
-              <video
-                src={currentImage.thumbnailUrl || currentImage.filePath}
-                autoPlay
-                loop
-                muted
-                playsInline
-                preload="metadata"
+              <MediaVideo
+                src={mediaUrl(currentImage.filePath, currentImage.thumbnailUrl, true)}
                 className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
               />
             ) : (
@@ -399,13 +431,8 @@ const CardMedia: React.FC<{ card: MonthCard }> = ({ card }) => {
   // la etiqueta.
   if (item.isVideo || isVideoUrl(item.url)) {
     return (
-      <video
+      <MediaVideo
         src={item.url}
-        autoPlay
-        loop
-        muted
-        playsInline
-        preload="metadata"
         className="absolute inset-0 w-full h-full object-cover"
       />
     );
@@ -477,7 +504,11 @@ export const MonthCardsCylinder: React.FC<{ cards: MonthCard[] }> = ({ cards }) 
   const pointer = useRef({ x: 0, y: 0, tx: 0, ty: 0 });
   const metrics = useRef({ cardW: 240, cardH: 317, wrapH: 490, viewportW: 1200 });
   const [box, setBox] = useState(metrics.current);
-  const [reduced, setReduced] = useState(false);
+  // ponytail: el estado inicial ya sale del OS: con movimiento reducido la
+  // fila estatica es lo primero que se monta (antes se veía un frame de 3D).
+  const [reduced, setReduced] = useState(prefersReducedMotion);
+  const [paused, setPaused] = useState(false);
+  const pausedRef = useRef(false);
   const touchStart = useRef<{ x: number; y: number } | null>(null);
 
   // the card follows the width of the section
@@ -501,7 +532,6 @@ export const MonthCardsCylinder: React.FC<{ cards: MonthCard[] }> = ({ cards }) 
   useEffect(() => {
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
     const sync = () => setReduced(mq.matches);
-    sync();
     mq.addEventListener('change', sync);
     return () => mq.removeEventListener('change', sync);
   }, []);
@@ -513,7 +543,8 @@ export const MonthCardsCylinder: React.FC<{ cards: MonthCard[] }> = ({ cards }) 
     let raf = 0;
     const frame = () => {
       raf = requestAnimationFrame(frame);
-      target.current += BASE_SPEED;
+      // ponytail: WCAG 2.2.2 — el giro automatico se puede pausar.
+      if (!pausedRef.current) target.current += BASE_SPEED;
       progress.current = damp(progress.current, target.current, 0.08);
       pointer.current.x = damp(pointer.current.x, pointer.current.tx, 0.08);
       pointer.current.y = damp(pointer.current.y, pointer.current.ty, 0.08);
@@ -577,6 +608,26 @@ export const MonthCardsCylinder: React.FC<{ cards: MonthCard[] }> = ({ cards }) 
     }
   };
 
+  // ponytail: WCAG 2.2.2 — el carrusel automatico se pausa y se mueve con el
+  // teclado (flechas: un mes; espacio: pausar).
+  const togglePaused = () => {
+    pausedRef.current = !pausedRef.current;
+    setPaused(pausedRef.current);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'ArrowLeft') {
+      target.current -= 1;
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight') {
+      target.current += 1;
+      e.preventDefault();
+    } else if (e.key === ' ' || e.key === 'Enter') {
+      togglePaused();
+      e.preventDefault();
+    }
+  };
+
   if (cards.length === 0) return null;
 
   if (reduced) {
@@ -598,38 +649,60 @@ export const MonthCardsCylinder: React.FC<{ cards: MonthCard[] }> = ({ cards }) 
   }
 
   return (
-    <div
-      ref={wrapRef}
-      onPointerMove={handlePointerMove}
-      onPointerLeave={handlePointerLeave}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-      className="relative w-full select-none touch-pan-y overflow-hidden"
-      style={{ height: box.wrapH, perspective: `${PERSPECTIVE}px` }}
-    >
+    <>
       <div
-        className="absolute left-1/2 top-1/2"
-        style={{
-          width: box.cardW,
-          height: box.cardH,
-          marginLeft: -box.cardW / 2,
-          marginTop: -box.cardH / 2,
-          transformStyle: 'preserve-3d'
-        }}
+        ref={wrapRef}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={handlePointerLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        role="group"
+        aria-label="Tarjetas de los meses (flechas para recorrerlas, espacio para pausar)"
+        className="relative w-full select-none touch-pan-y overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff85a1]/70 rounded-2xl"
+        style={{ height: box.wrapH, perspective: `${PERSPECTIVE}px` }}
       >
-        {cards.map((card, i) => (
-          <div
-            key={card.id}
-            ref={(el) => {
-              cardRefs.current[i] = el;
-            }}
-            className="absolute inset-0"
-            style={{ transformStyle: 'preserve-3d' }}
-          >
-            <MonthCardFaces card={card} />
-          </div>
-        ))}
+        <div
+          className="absolute left-1/2 top-1/2"
+          style={{
+            width: box.cardW,
+            height: box.cardH,
+            marginLeft: -box.cardW / 2,
+            marginTop: -box.cardH / 2,
+            transformStyle: 'preserve-3d'
+          }}
+        >
+          {cards.map((card, i) => (
+            <div
+              key={card.id}
+              ref={(el) => {
+                cardRefs.current[i] = el;
+              }}
+              className="absolute inset-0"
+              style={{ transformStyle: 'preserve-3d' }}
+            >
+              <MonthCardFaces card={card} />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+
+      <div className="mt-3 flex items-center justify-center gap-3">
+        <button
+          type="button"
+          onClick={togglePaused}
+          aria-pressed={paused}
+          className="rounded-full border border-[#ff85a1]/40 bg-[#1e0e1a] px-4 py-1.5 text-xs font-semibold text-[#fcd5df] transition-colors hover:bg-[#2b1425] cursor-pointer"
+        >
+          {paused ? 'Reanudar' : 'Pausar'} el carrusel
+        </button>
+        {/* ponytail: el mouse solo inclina las tarjetas; los meses se recorren
+            deslizando (o con las flechas del teclado). */}
+        <p className="text-xs text-[#fcd5df]/60">
+          Deslizá para recorrer los meses · el mouse inclina las tarjetas
+        </p>
+      </div>
+    </>
   );
 };

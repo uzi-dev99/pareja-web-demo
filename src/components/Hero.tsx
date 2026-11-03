@@ -6,6 +6,8 @@ import { audioEngine } from '../utils/audioSynth';
 import { triggerClickWhisper } from './ClickWhisper';
 import { usePhotos } from '../hooks/usePhotos';
 import { ImageMarquee } from './ImageMarquee';
+import { isVideoUrl, prefersReducedMotion } from '../utils/carousel3d';
+import type { Photo } from '../types';
 
 // ponytail: source of truth is PHOTO_COMPLIMENT_1..12 in HARDCODED_TEXTS.md.
 // Do not add lines here — update the .md inventory instead, or the
@@ -33,11 +35,42 @@ interface FloatingPhotoCompliment {
   y: number;
 }
 
+/**
+ * The photos the marquee shows: only images. A video row whose rendered url
+ * is the video file (the server returns the .mp4 as the thumbnail of the
+ * seeded videos) would be a broken tile crossing the hero on every lap; a
+ * video with a real poster keeps its poster.
+ */
+export const marqueePhotos = (photos: Photo[]): Photo[] =>
+  photos.filter((p) => !isVideoUrl(p.thumbnailUrl || p.filePath));
+
+/**
+ * Where the compliment floats: the pointer position, or the centre of the
+ * slide when it was opened with the keyboard (a keyboard activation has no
+ * pointer coordinates, so the old code put it on the top-left corner of
+ * the screen, half off-screen).
+ */
+export function complimentSpot(
+  clientX: number,
+  clientY: number,
+  rect: { left: number; top: number; width: number; height: number },
+  viewportW: number,
+  viewportH: number
+): { x: number; y: number } {
+  const keyboard = clientX === 0 && clientY === 0;
+  const x = keyboard ? rect.left + rect.width / 2 : clientX;
+  const y = keyboard ? rect.top + rect.height / 2 : clientY;
+  return {
+    x: Math.min(Math.max(x, 60), Math.max(0, viewportW - 60)),
+    y: Math.min(Math.max(y, 40), Math.max(0, viewportH - 40))
+  };
+}
+
 // ponytail: the bar of the carousel-hero prompt, adapted. The prompt
 // opens a full-screen drawer from a hamburger; this album has no menu
 // today, so the bar is the brand mark + the way into the gallery.
 const SiteNav: React.FC = () => (
-  <header className="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-5">
+  <header className="fixed top-0 inset-x-0 z-40 flex items-center justify-between px-4 sm:px-6 md:px-10 py-4 sm:py-5 bg-gradient-to-b from-black/90 via-black/50 to-transparent">
     <a href="#inicio" className="flex items-center gap-2.5" aria-label="Nuestro Álbum">
       {/* the site's own mark (public/favicon.svg), not the prompt's logo */}
       <svg viewBox="0 0 64 64" className="w-7 h-7" aria-hidden="true">
@@ -61,6 +94,8 @@ const SiteNav: React.FC = () => (
 
 export const Hero: React.FC = () => {
   const [activeCompliment, setActiveCompliment] = useState<FloatingPhotoCompliment | null>(null);
+  // ponytail: the OS setting, read once at mount.
+  const [reduced] = useState(prefersReducedMotion);
 
   // ponytail: pull from the same API the Gallery uses so uploads show up here live.
   // (was: `photos` from content.ts — became stale the moment you uploaded the first photo.)
@@ -75,17 +110,19 @@ export const Hero: React.FC = () => {
   // ponytail: the API is the source of truth (an upload shows up live);
   // the static demo list is the fallback so the hero is never empty
   // while the server is starting or offline.
-  const marqueePhotos = allMedia.length ? allMedia : demoPhotos;
+  const photos = marqueePhotos(allMedia.length ? allMedia : demoPhotos);
 
   const handlePhotoClick = (e: React.MouseEvent<HTMLElement>) => {
     audioEngine.playSparkle();
 
     const complimentId = Date.now();
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    const spot = complimentSpot(e.clientX, e.clientY, rect, window.innerWidth, window.innerHeight);
     setActiveCompliment({
       id: complimentId,
       text: HERO_COMPLIMENTS[Math.floor(Math.random() * HERO_COMPLIMENTS.length)],
-      x: e.clientX,
-      y: e.clientY
+      x: spot.x,
+      y: spot.y
     });
 
     window.setTimeout(() => {
@@ -126,14 +163,18 @@ export const Hero: React.FC = () => {
                 left: `${8 + ((i * 19) % 84)}%`,
                 color: i % 2 === 0 ? '#ffd166' : '#ff85a1',
               }}
-              animate={{
-                y: [0, -18, 0],
-                opacity: [0.2, 0.7, 0.2],
-                scale: [0.9, 1.25, 0.9]
-              }}
+              animate={
+                reduced
+                  ? { opacity: 0.4 }
+                  : {
+                      y: [0, -18, 0],
+                      opacity: [0.2, 0.7, 0.2],
+                      scale: [0.9, 1.25, 0.9]
+                    }
+              }
               transition={{
                 duration: 3.5 + i * 0.7,
-                repeat: Infinity,
+                repeat: reduced ? 0 : Infinity,
                 ease: 'easeInOut'
               }}
             >
@@ -175,8 +216,8 @@ export const Hero: React.FC = () => {
             {/* ponytail: rosa heart, scale + rotate pulse, low-cost (single transform prop). */}
             <motion.span
               className="inline-block align-middle text-[#ff85a1]"
-              animate={{ scale: [1, 1.25, 1], rotate: [0, -8, 8, 0] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+              animate={reduced ? { scale: 1, rotate: 0 } : { scale: [1, 1.25, 1], rotate: [0, -8, 8, 0] }}
+              transition={{ duration: 1.2, repeat: reduced ? 0 : Infinity, ease: 'easeInOut' }}
               aria-hidden="true"
             >
               <Heart className="inline w-6 h-6 fill-[#ff85a1]" />
@@ -186,7 +227,7 @@ export const Hero: React.FC = () => {
 
         {/* Infinite, drag-enabled photo marquee with the prompt's curved masks */}
         <div className="relative z-10 w-full mt-10">
-          <ImageMarquee photos={marqueePhotos} onPhotoClick={handlePhotoClick} />
+          <ImageMarquee photos={photos} onPhotoClick={handlePhotoClick} />
         </div>
 
         {/* Bottom section */}
@@ -201,7 +242,7 @@ export const Hero: React.FC = () => {
             className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-[#ffd166] to-[#ff758f] hover:brightness-110 text-stone-950 font-bold text-sm shadow-lg shadow-[#ffd166]/20 hover:shadow-[#ffd166]/40 transition-all cursor-pointer"
           >
             <span>Abrir nuestra carta y recuerdos</span>
-            <ArrowDown className="w-4 h-4 animate-bounce text-stone-900" />
+            <ArrowDown className={`w-4 h-4 text-stone-900 ${reduced ? '' : 'animate-bounce'}`} />
           </button>
         </div>
 

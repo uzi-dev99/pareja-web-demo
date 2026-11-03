@@ -9,9 +9,12 @@
  * El copy es del sitio (dedicatoria + frase), en español.
  */
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ArrowUpRight } from 'lucide-react';
-import Hls from 'hls.js';
+// ponytail: type-only import — it is erased at build time, so hls.js does
+// not land in the main chunk. The library itself is loaded with a dynamic
+// import inside the effect (and only when the browser needs it).
+import type Hls from 'hls.js';
 
 // Stream del prompt: una onda abstracta sobre negro, sin marcas de marca.
 // Safari reproduce HLS nativo; el resto necesita hls.js (única dependencia
@@ -60,32 +63,87 @@ interface CtaSectionProps {
   onOpenSecretModal: () => void;
 }
 
+type HlsModule = { default: typeof Hls };
+
+/**
+ * Plays an HLS stream on a video element and returns its cleanup.
+ *
+ * Safari plays HLS natively; the rest needs hls.js, which is loaded with a
+ * dynamic import so it never weighs on the main chunk. When neither path
+ * works the video keeps its poster: the section never breaks.
+ *
+ * `loadHls` is a parameter so the test can drive the fallback without a
+ * browser (and without downloading the library).
+ */
+export async function startStream(
+  video: HTMLVideoElement,
+  src: string,
+  loadHls: () => Promise<HlsModule> = () => import('hls.js')
+): Promise<() => void> {
+  // Safari reproduce HLS nativo.
+  if (video.canPlayType('application/vnd.apple.mpegurl')) {
+    video.src = src;
+    return () => {
+      video.removeAttribute('src');
+      video.load();
+    };
+  }
+
+  let HlsCtor: typeof Hls;
+  try {
+    ({ default: HlsCtor } = await loadHls());
+  } catch {
+    return () => {};
+  }
+  if (!HlsCtor?.isSupported()) return () => {};
+
+  const hls = new HlsCtor({ capLevelToPlayerSize: true });
+  hls.loadSource(src);
+  hls.attachMedia(video);
+  // Un error fatal deja el poster de fondo: el layout no se rompe.
+  hls.on(HlsCtor.Events.ERROR, (_event, data) => {
+    if (data.fatal) hls.destroy();
+  });
+  return () => hls.destroy();
+}
+
 export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenSecretModal }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+  // ponytail: el stream arranca cuando la sección entra en pantalla: es la
+  // última de la página y hasta entonces no se ve.
+  const [inView, setInView] = useState(false);
 
   useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(entry.isIntersecting),
+      { threshold: 0.1 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView) return;
     const video = videoRef.current;
     if (!video) return;
 
     // ponytail: con movimiento reducido el fondo queda en el poster, quieto.
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-    if (Hls.isSupported()) {
-      const hls = new Hls();
-      hls.loadSource(HLS_SRC);
-      hls.attachMedia(video);
-      // Un error fatal deja el poster de fondo: el layout no se rompe.
-      hls.on(Hls.Events.ERROR, (_event, data) => {
-        if (data.fatal) hls.destroy();
-      });
-      return () => hls.destroy();
-    }
-
-    // Safari reproduce HLS nativo.
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = HLS_SRC;
-    }
-  }, []);
+    let stop: (() => void) | undefined;
+    let cancelled = false;
+    void startStream(video, HLS_SRC).then((cleanup) => {
+      if (cancelled) cleanup();
+      else stop = cleanup;
+    });
+    return () => {
+      cancelled = true;
+      stop?.();
+    };
+  }, [inView]);
 
   const scrollToGallery = () => {
     document.querySelector('#galeria')?.scrollIntoView({ behavior: 'smooth' });
@@ -94,6 +152,7 @@ export const CtaSection: React.FC<CtaSectionProps> = ({ onOpenSecretModal }) => 
   return (
     <section
       id="cta"
+      ref={sectionRef}
       className="relative z-10 isolate overflow-hidden bg-[#0d050c] px-6 py-24 text-center md:px-16 md:py-32 lg:px-24"
     >
       <style>{LIQUID_GLASS_CSS}</style>

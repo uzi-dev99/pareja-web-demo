@@ -15,7 +15,7 @@
  */
 
 import { test, expect } from 'bun:test';
-import { wrapOffset } from '../src/components/ImageMarquee';
+import { loopHalfWidth, wrapOffset } from '../src/components/ImageMarquee';
 
 const HALF = 1000;
 
@@ -39,4 +39,23 @@ test('wrapOffset survives an offset bigger than one strip', () => {
 
 test('wrapOffset is a no-op while the track has no width yet', () => {
   expect(wrapOffset(-37, 0)).toBe(-37);
+});
+
+test('the period of the loop is measured between the two copies of the strip', () => {
+  // three slides of 300px + a gap of 20px: the second copy starts at 620
+  const slides = [
+    { offsetLeft: 0 },
+    { offsetLeft: 300 },
+    { offsetLeft: 600 },
+    { offsetLeft: 620 },
+    { offsetLeft: 920 },
+    { offsetLeft: 1220 }
+  ];
+  // scrollWidth / 2 (610) is half a gap short: that half gap jumps the
+  // strip once per lap
+  expect(loopHalfWidth(slides, 3, 1220)).toBe(620);
+  // without the second copy there is nothing to measure: the fallback is
+  // half the track
+  expect(loopHalfWidth(slides, 0, 1220)).toBe(610);
+  expect(loopHalfWidth(slides, 6, 1220)).toBe(610);
 });

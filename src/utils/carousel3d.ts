@@ -9,6 +9,34 @@
 
 export const PERSPECTIVE = 1350;
 
+/**
+ * The seed rows and the uploads come with the extension in the file path
+ * (a .mp4 photo is still stored as a photo row), so the extension decides
+ * how a file is rendered. Shared by the two carousels and the hero.
+ */
+export const isVideoUrl = (url: string): boolean => /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(url);
+
+/**
+ * The url to render for a media item: a video plays its own file (its
+ * thumbnail is a poster image, not a playable url), an image shows its
+ * thumbnail.
+ */
+export const mediaUrl = (
+  filePath: string,
+  thumbnailUrl: string | undefined,
+  isVideo: boolean
+): string => (isVideo ? filePath : thumbnailUrl || filePath);
+
+/**
+ * The OS setting: with reduced motion the loops (marquee, cylinder, hero)
+ * stop. Read once per mount; the components that need live updates add
+ * their own matchMedia listener.
+ */
+export const prefersReducedMotion = (): boolean =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
 export interface CylinderMetrics {
   cardW: number;
   viewportW: number;
@@ -59,11 +87,18 @@ export function virtualIndex(progress: number): number {
   return rounded + Math.sign(diff) * Math.pow(Math.abs(diff) * 2, 4.2) / 2;
 }
 
-/** Position of a single card, given its distance (in cards) to the center. */
-export function cardPose(offset: number, m: CylinderMetrics): CardPose {
+/**
+ * Position of a single card, given its distance (in cards) to the center.
+ *
+ * `fadeEnd` is where the card fades out completely: the fade has to finish
+ * before the wrap (|offset| = count/2), or the card jumps from one edge of
+ * the screen to the other while it is still visible — with six months or
+ * fewer the wrap happens inside the visible range.
+ */
+export function cardPose(offset: number, m: CylinderMetrics, fadeEnd = 3): CardPose {
   const abs = Math.abs(offset);
   const sign = Math.sign(offset) || 1;
-  if (abs > 3) {
+  if (abs > fadeEnd) {
     return { x: 0, z: 0, rotateY: 0, opacity: 0, visible: false, centerFactor: 0 };
   }
 
@@ -95,12 +130,13 @@ export function cardPose(offset: number, m: CylinderMetrics): CardPose {
     x = start + e * (end - start);
   }
 
+  const fadeStart = Math.max(0, fadeEnd - 1);
   return {
     x: sign * x,
     z,
     // the card on the right turns its right edge towards the viewer
     rotateY: -sign * rot,
-    opacity: abs > 2 ? 1 - smoothstep(Math.min(abs - 2, 1)) : 1,
+    opacity: abs > fadeStart ? 1 - smoothstep(Math.min(abs - fadeStart, 1)) : 1,
     visible: true,
     centerFactor: Math.max(0, 1 - abs)
   };
@@ -113,5 +149,11 @@ export function cylinderLayout(
   m: CylinderMetrics
 ): CardPose[] {
   const active = virtualIndex(progress);
-  return Array.from({ length: count }, (_, i) => cardPose(wrapOffset(i - active, count), m));
+  // the fade ends with the wrap: never later, or a card jumps edge to edge.
+  // With two months or fewer there is no hidden slot to fade into: the
+  // cards keep the base opacity (a card must not disappear).
+  const fadeEnd = count <= 2 ? 3 : Math.min(3, count / 2);
+  return Array.from({ length: count }, (_, i) =>
+    cardPose(wrapOffset(i - active, count), m, fadeEnd)
+  );
 }

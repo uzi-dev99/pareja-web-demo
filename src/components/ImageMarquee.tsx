@@ -43,6 +43,25 @@ export function wrapOffset(offset: number, halfWidth: number): number {
   return wrapped > 0 ? wrapped - halfWidth : wrapped + 0;
 }
 
+/**
+ * The period of the loop: the distance between the two copies of the strip
+ * (the slides of one copy plus the gaps between them).
+ *
+ * `scrollWidth / 2` is half a gap short — the gap between the copies has no
+ * partner on the other side — and that half gap jumps the strip once per
+ * lap, so the period is measured from the offsetLeft of the two copies.
+ */
+export function loopHalfWidth(
+  slides: ArrayLike<{ offsetLeft: number }>,
+  count: number,
+  fallbackWidth: number
+): number {
+  if (count > 0 && slides.length > count) {
+    return slides[count].offsetLeft - slides[0].offsetLeft;
+  }
+  return fallbackWidth / 2;
+}
+
 interface ImageMarqueeProps {
   photos: Photo[];
   /** Called when a photo is clicked (not dragged). */
@@ -101,12 +120,7 @@ export const ImageMarquee: React.FC<ImageMarqueeProps> = ({ photos, onPhotoClick
       // is half a gap short of it (the gap between the copies has no
       // partner on the other side) and that half gap jumps the strip once
       // per lap.
-      const slides = track.children;
-      const half =
-        slides.length > count.current
-          ? (slides[count.current] as HTMLElement).offsetLeft -
-            (slides[0] as HTMLElement).offsetLeft
-          : track.scrollWidth / 2;
+      const half = loopHalfWidth(track.children, count.current, track.scrollWidth);
 
       offset.current = wrapOffset(offset.current, half);
       track.style.transform = `translate3d(${offset.current}px, 0, 0)`;
@@ -125,16 +139,25 @@ export const ImageMarquee: React.FC<ImageMarqueeProps> = ({ photos, onPhotoClick
     // with the capture on the track the browser fires the click on the
     // track and the slide's own click (the compliment) never arrives.
     // The events still bubble up to the track, so the drag keeps working.
+    // When the press lands on a gap (no slide under the pointer) the
+    // capture goes on the track: without a capture the release outside the
+    // strip never reaches us and the drag stays stuck.
     const slide = (e.target as HTMLElement).closest('button');
-    if (slide) {
-      slide.setPointerCapture(e.pointerId);
-      capture.current = slide;
-    }
+    const holder = slide ?? e.currentTarget;
+    holder.setPointerCapture(e.pointerId);
+    capture.current = holder;
     setIsDragging(true);
   };
 
   const handlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!dragging.current) return;
+    // ponytail: the release can happen outside the window: no pointerup
+    // arrives and the drag would stay stuck (the auto-scroll frozen and
+    // every hover would drag the strip). No buttons left = released.
+    if (e.buttons === 0) {
+      handlePointerUp(e);
+      return;
+    }
     const now = performance.now();
     const dx = e.clientX - drag.current.lastX;
     const dt = now - drag.current.lastT;
@@ -177,29 +200,43 @@ export const ImageMarquee: React.FC<ImageMarqueeProps> = ({ photos, onPhotoClick
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onLostPointerCapture={handlePointerUp}
         className={`relative flex w-max gap-3 sm:gap-4 py-4 select-none ${
           isDragging ? 'cursor-grabbing' : 'cursor-grab'
         }`}
         style={{ willChange: 'transform', touchAction: 'pan-y' }}
       >
-        {slides.map((photo, i) => (
-          <button
-            key={`${photo.id}-${i}`}
-            type="button"
-            onClick={(e) => {
-              if (!dragged.current) onPhotoClick?.(e);
-            }}
-            className="w-60 h-80 sm:w-80 sm:h-[32rem] flex-shrink-0 rounded-2xl overflow-hidden bg-black/20"
-          >
-            <img
-              src={photo.thumbnailUrl || photo.filePath}
-              alt={photo.caption || 'Foto de nuestro álbum'}
-              loading="lazy"
-              draggable={false}
-              className="w-full h-full object-cover pointer-events-none"
-            />
-          </button>
-        ))}
+        {slides.map((photo, i) => {
+          // ponytail: the second copy only exists to make the loop
+          // seamless: it is aria-hidden and out of the tab order, so a
+          // screen reader announces every photo once.
+          const clone = i >= photos.length;
+          return (
+            <button
+              key={`${photo.id}-${i}`}
+              type="button"
+              aria-hidden={clone ? true : undefined}
+              tabIndex={clone ? -1 : 0}
+              onClick={(e) => {
+                const wasDragged = dragged.current;
+                // ponytail: the flag is consumed here: a drag ends with a
+                // click on the slide, and without resetting it the next
+                // keyboard activation would stay silent.
+                dragged.current = false;
+                if (!wasDragged) onPhotoClick?.(e);
+              }}
+              className="w-60 h-80 sm:w-80 sm:h-[32rem] flex-shrink-0 rounded-2xl overflow-hidden bg-black/20"
+            >
+              <img
+                src={photo.thumbnailUrl || photo.filePath}
+                alt={photo.caption || 'Foto de nuestro álbum'}
+                loading="lazy"
+                draggable={false}
+                className="w-full h-full object-cover pointer-events-none"
+              />
+            </button>
+          );
+        })}
       </div>
     </section>
   );

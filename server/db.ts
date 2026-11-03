@@ -13,6 +13,7 @@ import { Database } from 'bun:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { photos as seedPhotos, secretCollagePhotos as seedSecretPhotos } from '../src/data/content';
+import { isVideoUrl } from '../src/utils/carousel3d';
 import { thumbExists, thumbUrlFor } from './thumbs';
 
 const DB_PATH = process.env.DB_PATH ?? './data/app.db';
@@ -150,6 +151,14 @@ function seedIfEmpty(db: Database): void {
 // per request (~1 ms for 216 photos); upgrade path: cache the thumb id set
 // in memory and invalidate it on write.
 function thumbnailFor(row: PhotoRow): string {
+  // ponytail: una fila de video NO tiene miniatura propia: el poster
+  // (content.ts, la DB no tiene columna de thumbnail). Devolver el .mp4
+  // como thumbnailUrl dibujaba una tile rota en cada <img src={thumbnailUrl
+  // || filePath}> (galeria, collage secreto, editor de fotos).
+  if (isVideoUrl(row.file_path)) {
+    const seed = seedPhotos.find((p) => p.id === row.original_name);
+    return seed?.thumbnailUrl ?? '';
+  }
   const uploadDir = process.env.UPLOAD_DIR ?? './uploads';
   if (!row.file_path.startsWith('/uploads/')) return row.file_path;
   return thumbExists(row.id, uploadDir) ? thumbUrlFor(row.id) : row.file_path;
@@ -160,7 +169,10 @@ export function rowToPhoto(row: PhotoRow): import('../src/types').Photo {
     id: row.id,
     filePath: row.file_path,
     thumbnailUrl: thumbnailFor(row),
-    mediaType: 'image',
+    // ponytail: la fila dice "image" pero el archivo puede ser un .mp4
+    // (los dos videos del seed): la extension manda, o el consumidor
+    // renderiza un <img> con un video y sale una tile rota.
+    mediaType: isVideoUrl(row.file_path) ? 'video' : 'image',
     caption: row.caption,
     month: row.month ?? '',
     year: row.year ?? new Date().getFullYear(),
@@ -178,7 +190,7 @@ export function secretRowToPhoto(row: PhotoRow): import('../src/types').Photo {
     id: row.id,
     filePath: row.file_path,
     thumbnailUrl: thumbnailFor(row),
-    mediaType: 'image',
+    mediaType: isVideoUrl(row.file_path) ? 'video' : 'image',
     caption: row.caption,
     month: '',
     year: 0,

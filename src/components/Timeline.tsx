@@ -22,6 +22,7 @@ import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { AddMemoryModal } from './AddMemoryModal';
 import { EditableText } from './EditableText';
 import { MONTHS_PER_PAGE, monthKey, monthOrdinal, visibleTimeline } from '../utils/timelineMonths';
+import { mediaUrl } from '../utils/carousel3d';
 
 interface TimelineProps {
   onOpenGalleryMonth?: (month: string) => void;
@@ -161,9 +162,20 @@ export const Timeline: React.FC<TimelineProps> = ({
       const staticImages = ev.images ?? [];
       const single = ev.imageId ? photos.find((p) => p.id === ev.imageId) : undefined;
       const media = [
-        ...override.map((p) => ({ url: p.thumbnailUrl || p.filePath, isVideo: p.mediaType === 'video' })),
-        ...staticImages.map((img) => ({ url: img.url, isVideo: img.mediaType === 'video' })),
-        ...(single ? [{ url: single.thumbnailUrl || single.filePath, isVideo: single.mediaType === 'video' }] : [])
+        ...override.map((p) => ({
+          url: mediaUrl(p.filePath, p.thumbnailUrl, p.mediaType === 'video'),
+          isVideo: p.mediaType === 'video'
+        })),
+        ...staticImages.map((img) => ({
+          url: mediaUrl(img.url, undefined, img.mediaType === 'video'),
+          isVideo: img.mediaType === 'video'
+        })),
+        ...(single
+          ? [{
+              url: mediaUrl(single.filePath, single.thumbnailUrl, single.mediaType === 'video'),
+              isVideo: single.mediaType === 'video'
+            }]
+          : [])
       ];
       return {
         id: ev.id,
@@ -230,11 +242,11 @@ export const Timeline: React.FC<TimelineProps> = ({
         </AnimatePresence>
       </div>
 
-      {/* 3D month-card cylinder (PWD-497) */}
-      <MonthCardsCylinder cards={monthCards} />
-      <p className="mb-12 text-center text-xs text-[#fcd5df]/60">
-        Mové el mouse o deslizá para recorrer los meses
-      </p>
+      {/* 3D month-card cylinder (PWD-497) — the hint and the pause button
+          live inside it: they only make sense in the 3D version. */}
+      <div className="mb-12">
+        <MonthCardsCylinder cards={monthCards} />
+      </div>
 
       {/* Central Illuminated Progress Line & Wide Two-Column Spread */}
       <div className="relative">
