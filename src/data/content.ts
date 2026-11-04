@@ -48,8 +48,8 @@ export const photos: Photo[] = [
   // GATOS DE ÉL: CANELA (Macho)
   {
     id: 'photo-canela-1',
-    filePath: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
+    thumbnailUrl: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
     mediaType: 'image',
     caption: 'Canela en modo inspector de sillones, controlando que no hagamos lío.',
     month: 'Marzo',
@@ -60,8 +60,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-canela-2',
-    filePath: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1573865526739-10659fec78a5.jpg',
+    thumbnailUrl: '/seed/photos/photo-1573865526739-10659fec78a5.jpg',
     mediaType: 'image',
     caption: 'Siesta real de Canela atravesado encima del teclado cuando querías estudiar.',
     month: 'Mayo',
@@ -74,8 +74,8 @@ export const photos: Photo[] = [
   // GATOS DE ÉL: TRUFA (Macho)
   {
     id: 'photo-trufa-1',
-    filePath: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1533738363-b7f9aef128ce.jpg',
+    thumbnailUrl: '/seed/photos/photo-1533738363-b7f9aef128ce.jpg',
     mediaType: 'image',
     caption: 'Trufa con esos ojazos enormes mirando la caja de cartón como si fuera su palacio.',
     month: 'Abril',
@@ -86,8 +86,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-trufa-2',
-    filePath: 'https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1561948955-570b270e7c36.jpg',
+    thumbnailUrl: '/seed/photos/photo-1561948955-570b270e7c36.jpg',
     mediaType: 'image',
     caption: 'Trufa hecho un bollito debajo del acolchado en una mañana de frío.',
     month: 'Junio',
@@ -100,8 +100,8 @@ export const photos: Photo[] = [
   // GATAS DE ELLA: COPO (Hembra)
   {
     id: 'photo-copo-1',
-    filePath: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1543852786-1cf6624b9987.jpg',
+    thumbnailUrl: '/seed/photos/photo-1543852786-1cf6624b9987.jpg',
     mediaType: 'image',
     caption: 'Copo, la reina de ella: posando como una verdadera princesa felina.',
     month: 'Abril',
@@ -112,8 +112,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-copo-2',
-    filePath: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1495360010541-f48722b34f7d.jpg',
+    thumbnailUrl: '/seed/photos/photo-1495360010541-f48722b34f7d.jpg',
     mediaType: 'image',
     caption: 'Copo con sus patitas dobladas mirándote con devoción absoluta.',
     month: 'Mayo',
@@ -126,8 +126,8 @@ export const photos: Photo[] = [
   // GATAS DE ELLA: NUBE (Hembra)
   {
     id: 'photo-nube-1',
-    filePath: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1574158622682-e40e69881006.jpg',
+    thumbnailUrl: '/seed/photos/photo-1574158622682-e40e69881006.jpg',
     mediaType: 'image',
     caption: 'Nube, la otra consentida de Sam: ojos dulces y curiosidad interminable.',
     month: 'Junio',
@@ -138,8 +138,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-nube-2',
-    filePath: 'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1535930891776-0c2dfb7fda1a?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1535930891776-0c2dfb7fda1a.jpg',
+    thumbnailUrl: '/seed/photos/photo-1535930891776-0c2dfb7fda1a.jpg',
     mediaType: 'image',
     caption: 'Nube durmiendo la siesta más profunda de su vida entre tus almohadones.',
     month: 'Agosto',
@@ -152,8 +152,8 @@ export const photos: Photo[] = [
   // CANELA, TRUFA, COPO Y NUBE JUNTOS (LOS 4 MICHIS: 2 NENES Y 2 NENAS)
   {
     id: 'photo-los-cuatro-michis',
-    filePath: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1548802673-380ab8ebc7b7.jpg',
+    thumbnailUrl: '/seed/photos/photo-1548802673-380ab8ebc7b7.jpg',
     mediaType: 'image',
     caption: 'Nuestra familia felina completa: Canela y Trufa (los nenes) y Copo y Nube (las nenas).',
     month: 'Julio',
@@ -170,8 +170,8 @@ export const photos: Photo[] = [
   // nada personal: un gato y un puntero laser.
   {
     id: 'video-gato-puntero-laser',
-    filePath: 'https://upload.wikimedia.org/wikipedia/commons/transcoded/7/7a/Cat_playing_with_a_laser_pointer.webm/Cat_playing_with_a_laser_pointer.webm.480p.vp9.webm',
-    thumbnailUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Cat_playing_with_a_laser_pointer.webm/960px--Cat_playing_with_a_laser_pointer.webm.jpg',
+    filePath: '/seed/video/cat-laser-480p.webm',
+    thumbnailUrl: '/seed/video/cat-laser-480p.jpg',
     mediaType: 'video',
     duration: '0:14',
     caption: 'Video: un gato detrás del puntero laser, el juego que se repite en cada foto.',
@@ -185,8 +185,8 @@ export const photos: Photo[] = [
   // MOMENTOS DE LA HISTORIA
   {
     id: 'photo-feb-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1516589178581-6cd7833ae3b2.jpg',
+    thumbnailUrl: '/seed/photos/photo-1516589178581-6cd7833ae3b2.jpg',
     mediaType: 'image',
     caption: 'El primer café en Febrero. Nos quedamos 4 horas hablando sin darnos cuenta de la hora.',
     month: 'Febrero',
@@ -197,8 +197,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-mar-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1518199266791-5375a83190b7.jpg',
+    thumbnailUrl: '/seed/photos/photo-1518199266791-5375a83190b7.jpg',
     mediaType: 'image',
     caption: 'Charlas eternas en la plaza bajo las luces doradas. Cuando me di cuenta de lo mucho que me gustabas.',
     month: 'Marzo',
@@ -209,8 +209,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-abr-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1529333166437-7750a6dd5a70.jpg',
+    thumbnailUrl: '/seed/photos/photo-1529333166437-7750a6dd5a70.jpg',
     mediaType: 'image',
     caption: 'Nuestra primera escapada de fin de semana. Cantando a los gritos en la ruta.',
     month: 'Abril',
@@ -221,8 +221,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-may-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1534528741775-53994a69daeb.jpg',
+    thumbnailUrl: '/seed/photos/photo-1534528741775-53994a69daeb.jpg',
     mediaType: 'image',
     caption: 'Tarde cocinando pasta juntos. Terminaste con harina en la nariz y una sonrisa hermosa.',
     month: 'Mayo',
@@ -233,8 +233,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-jun-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1522673607200-164d1b6ce486.jpg',
+    thumbnailUrl: '/seed/photos/photo-1522673607200-164d1b6ce486.jpg',
     mediaType: 'image',
     caption: 'El primer frío del año. Te presté mi abrigo gigante y nos tomamos un chocolate caliente.',
     month: 'Junio',
@@ -245,8 +245,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-jul-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1476514525535-07fb3b4ae5f1.jpg',
+    thumbnailUrl: '/seed/photos/photo-1476514525535-07fb3b4ae5f1.jpg',
     mediaType: 'image',
     caption: 'Tarde de lluvia viendo películas bajo una montaña de mantas y pochoclos.',
     month: 'Julio',
@@ -257,8 +257,8 @@ export const photos: Photo[] = [
   },
   {
     id: 'photo-ago-2026-1',
-    filePath: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=1200&q=80',
-    thumbnailUrl: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=600&q=80',
+    filePath: '/seed/photos/photo-1511988617509-a57c8a288659.jpg',
+    thumbnailUrl: '/seed/photos/photo-1511988617509-a57c8a288659.jpg',
     mediaType: 'image',
     caption: 'Atardecer dorado compartiendo sueños de todo lo que queremos conocer juntos.',
     month: 'Agosto',
@@ -284,12 +284,12 @@ export const timelineEvents: TimelineEvent[] = [
     internalJoke: 'Te juro que no sabía que ese iba a ser el mes que cambiaría todo.',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1475924156734-496f6cac6ec1?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1475924156734-496f6cac6ec1.jpg',
         caption: 'Atardecer de enero, el mar y vos en mi cabeza',
         location: 'El preludio'
       },
       {
-        url: 'https://images.unsplash.com/photo-1419833173245-f59e1b93f9ee?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1419833173245-f59e1b93f9ee.jpg',
         caption: 'Caminatas pensando en qué dirías si te hablaba',
         location: 'Calles de enero'
       }
@@ -311,17 +311,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-feb-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1516589178581-6cd7833ae3b2?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1516589178581-6cd7833ae3b2.jpg',
         caption: 'El primer café: 4 horas que se sintieron como 5 minutos',
         location: 'Café del Barrio'
       },
       {
-        url: 'https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1501339847302-ac426a4a7cbb.jpg',
         caption: 'Tus dos tazas de café y las servilletas con notas garabateadas',
         location: 'La mesita de la ventana'
       },
       {
-        url: 'https://images.unsplash.com/photo-1517256064527-09c73fc73e38?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1517256064527-09c73fc73e38.jpg',
         caption: 'La caminata de vuelta bajo el cielo estrellado de verano',
         location: 'Calles del barrio'
       }
@@ -343,17 +343,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-mar-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1518199266791-5375a83190b7.jpg',
         caption: 'Plaza iluminada y nuestras miradas de cómplices',
         location: 'Parque Central'
       },
       {
-        url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
         caption: 'Canela asomándose con curiosidad total en su primer mes',
         location: 'En casa'
       },
       {
-        url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1511671782779-c97d3d27a1d4.jpg',
         caption: 'Compartiendo auriculares y descubriendo canciones',
         location: 'Banco del parque'
       }
@@ -375,17 +375,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-abr-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1543852786-1cf6624b9987.jpg',
         caption: 'Copo custodiando la ventana con su elegancia habitual',
         location: 'En casa'
       },
       {
-        url: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1533738363-b7f9aef128ce.jpg',
         caption: 'Trufa asomándose para ver qué traman las chicas',
         location: 'El pasillo'
       },
       {
-        url: 'https://images.unsplash.com/photo-1529333166437-7750a6dd5a70?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1529333166437-7750a6dd5a70.jpg',
         caption: 'Ruta soleada cantando a viva voz',
         location: 'De camino'
       }
@@ -407,17 +407,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-may-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1534528741775-53994a69daeb.jpg',
         caption: 'Tu sonrisa hermosa con harina en la punta de la nariz',
         location: 'En la cocina'
       },
       {
-        url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1555396273-367ea4eb4db5.jpg',
         caption: 'Nuestra pasta artesanal antes de que se pegara al colador',
         location: 'Mesa de amasar'
       },
       {
-        url: 'https://images.unsplash.com/photo-1573865526739-10659fec78a5?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1573865526739-10659fec78a5.jpg',
         caption: 'Canela durmiendo tranquilo ignorando el caos de la cocina',
         location: 'Sillón'
       }
@@ -439,17 +439,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-jun-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1574158622682-e40e69881006.jpg',
         caption: 'Nube durmiendo enroscada en tu bufanda favorita',
         location: 'Living'
       },
       {
-        url: 'https://images.unsplash.com/photo-1522673607200-164d1b6ce486?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1522673607200-164d1b6ce486.jpg',
         caption: 'Con mi campera gigante y chocolate caliente en mano',
         location: 'Parque de invierno'
       },
       {
-        url: 'https://images.unsplash.com/photo-1561948955-570b270e7c36?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1561948955-570b270e7c36.jpg',
         caption: 'Trufa esperándonos tapadito hasta el cuello con su mantita',
         location: 'En casa'
       }
@@ -471,17 +471,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-jul-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1476514525535-07fb3b4ae5f1.jpg',
         caption: 'Lluvia en la ventana, sillón, mantas y paz absoluta',
         location: 'Living'
       },
       {
-        url: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1548802673-380ab8ebc7b7.jpg',
         caption: 'Los michis compartiendo el acolchado en paz total',
         location: 'El sillón'
       },
       {
-        url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1517841905240-472988babdf9.jpg',
         caption: 'Café caliente y galletitas mientras descansabas',
         location: 'La mesita ratona'
       }
@@ -503,17 +503,17 @@ export const timelineEvents: TimelineEvent[] = [
     imageId: 'photo-ago-2026-1',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1511988617509-a57c8a288659?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1511988617509-a57c8a288659.jpg',
         caption: 'Atardecer de oro puro mientras soñábamos el futuro',
         location: 'Mirador'
       },
       {
-        url: 'https://images.unsplash.com/photo-1495360010541-f48722b34f7d?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1495360010541-f48722b34f7d.jpg',
         caption: 'Copo descansando bajo el rayito dorado del atardecer',
         location: 'Living'
       },
       {
-        url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
         caption: 'Canela esperándonos en el balcón al llegar',
         location: 'El balcón'
       }
@@ -536,12 +536,12 @@ export const timelineEvents: TimelineEvent[] = [
     internalJoke: 'Me preguntaste tres veces qué te iba a regalar y las tres veces te hice la misma cara de poker.',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
         caption: 'Canela y Trufa en modo cómplices conspirando tu regalo',
         location: 'En casa'
       },
       {
-        url: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1543852786-1cf6624b9987.jpg',
         caption: 'Copo y Nube preparando la sorpresa',
         location: 'Living'
       }
@@ -563,12 +563,12 @@ export const timelineEvents: TimelineEvent[] = [
     internalJoke: 'Toca el marco para elegir o subir nuestra foto de hoy juntitos.',
     images: [
       {
-        url: 'https://images.unsplash.com/photo-1464349095431-e9a21285b5f3?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1464349095431-e9a21285b5f3.jpg',
         caption: '¡Velitas encendidas y todos los deseos del mundo para vos!',
         location: 'Festejo de Cumpleaños'
       },
       {
-        url: 'https://images.unsplash.com/photo-1548802673-380ab8ebc7b7?auto=format&fit=crop&w=1200&q=80',
+        url: '/seed/photos/photo-1548802673-380ab8ebc7b7.jpg',
         caption: 'Los cuatro michis saludando a su mamá humana favorita',
         location: 'En casa'
       }
@@ -581,32 +581,32 @@ export const timelineEvents: TimelineEvent[] = [
 // Fotos secretas del collage privado (Easter Egg con PIN 0909)
 export const secretCollagePhotos = [
   {
-    url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1518199266791-5375a83190b7.jpg',
     caption: '¡Desbloqueaste nuestro rincón secreto! Te amo con locura, mi amor.',
     iconName: 'Heart'
   },
   {
-    url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg',
     caption: 'Canela custodiando el secreto con su mirada más seria.',
     iconName: 'Cat'
   },
   {
-    url: 'https://images.unsplash.com/photo-1533738363-b7f9aef128ce?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1533738363-b7f9aef128ce.jpg',
     caption: 'Trufa aprobando este mensaje de amor absoluto.',
     iconName: 'Cat'
   },
   {
-    url: 'https://images.unsplash.com/photo-1543852786-1cf6624b9987?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1543852786-1cf6624b9987.jpg',
     caption: 'Copo, la reina de Sam, vigilando el collage.',
     iconName: 'Sparkles'
   },
   {
-    url: 'https://images.unsplash.com/photo-1574158622682-e40e69881006?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1574158622682-e40e69881006.jpg',
     caption: 'Nube, la dulce compañera felina de Sam.',
     iconName: 'Heart'
   },
   {
-    url: 'https://images.unsplash.com/photo-1476514525535-07fb3b4ae5f1?auto=format&fit=crop&w=800&q=80',
+    url: '/seed/photos/photo-1476514525535-07fb3b4ae5f1.jpg',
     caption: 'Promesa de seguir sumando recuerdos y cartas mes a mes.',
     iconName: 'Feather'
   }

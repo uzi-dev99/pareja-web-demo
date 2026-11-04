@@ -14,6 +14,9 @@ import type Hls from 'hls.js';
 
 // Stream del prompt de PWD-496: una onda abstracta sobre negro, sin marcas
 // de marca. PWD-522 lo mudó del CTA al hero.
+// ponytail: the ONE documented hot-link exception (VK-547). The stream comes
+// from an external prompt and its licence is unknown, so it is not re-hosted
+// in this public repo.
 const HLS_SRC =
   'https://stream.mux.com/8wrHPCX2dC3msyYU9ObwqNdm00u3ViXvOSHUMRYSEe5Q.m3u8';
 const POSTER =

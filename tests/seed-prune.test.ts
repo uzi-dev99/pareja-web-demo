@@ -87,10 +87,14 @@ test('un cambio de URL en content.ts NO borra la fila de seed (ni las ediciones 
       .query("SELECT caption, file_path FROM photos WHERE id = 'seed-photo-canela-1'")
       .get() as { caption: string; file_path: string } | null;
 
-    // la fila sigue ahí, con la edición del owner y con su URL
+    // la fila sigue ahí, con la edición del owner
     expect(row).not.toBeNull();
     expect(row!.caption).toBe('editada por el owner');
-    expect(row!.file_path).toBe('https://ejemplo/otra-url.jpg');
+    // ponytail: VK-547 — la URL vieja (un hot-link) se repunta al path
+    // local del seed; el resto de la fila es del owner y no se toca.
+    expect(row!.file_path).toBe(
+      seedPhotos.find((p) => p.id === 'photo-canela-1')!.filePath
+    );
   } finally {
     db.close();
   }

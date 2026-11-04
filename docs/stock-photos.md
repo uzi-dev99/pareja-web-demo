@@ -2,12 +2,27 @@
 
 Nothing here comes from a real person, a real photo or a private library.
 
-## Hot-linked stock (not stored in the repo)
+## Vendored stock (in the repo, served from our own origin)
 
-| What | Host | Licence | Where used |
+VK-547: the stock used to be hot-linked from three third-party hosts
+(Unsplash, Wikimedia Commons, Mux). A dead CDN link was a real bug
+(VK-524: the hover card drew a broken seed url), so every file now
+lives in `public/seed/` and the demo depends on nothing outside its own
+origin. `scripts/vendor-seed-media.mjs` reproduces the copies (the
+committed files are the source of truth).
+
+| What | Where | Licence | Source |
 |---|---|---|---|
-| 49 photos (16 gallery, 27 timeline, 6 collage) | https://images.unsplash.com | Unsplash License (https://unsplash.com/license) | URLs in `src/data/content.ts` |
-| 1 video (cat + laser pointer, 480p webm, poster jpg) | https://upload.wikimedia.org | CC BY-SA 3.0 — Clément Bucco-Lechat, "Cat playing with a laser pointer" (Wikimedia Commons) | URLs in `src/data/content.ts` |
+| 24 photos (gallery, timeline and secret collage) | `public/seed/photos/*.jpg` | Unsplash License — free to use and to redistribute, attribution not required | per-file list in `docs/seed-media-sources.md` |
+| 1 video (cat + laser pointer, 480p VP9 webm) | `public/seed/video/cat-laser-480p.webm` | CC BY-SA 3.0 — Clément Bucco-Lechat, "Cat playing with a laser pointer" | https://commons.wikimedia.org/wiki/File:Cat_playing_with_a_laser_pointer.webm |
+| 1 poster frame of that video | `public/seed/video/cat-laser-480p.jpg` | CC BY-SA 3.0 (same work) | https://commons.wikimedia.org/wiki/File:Cat_playing_with_a_laser_pointer.webm |
+| hero background (Mux HLS stream + poster) | NOT vendored: hot-linked in `src/components/Hero.tsx` | licence unknown, not made for this demo; the one documented hot-link exception | `docs/seed-media-sources.md` |
+
+Unsplash License: https://unsplash.com/license
+CC BY-SA 3.0: https://creativecommons.org/licenses/by-sa/3.0
+
+The CC BY-SA 3.0 files keep that licence here (share alike) and the
+attribution above stays with them.
 
 ## The owner's art, used with permission
 
@@ -28,7 +43,7 @@ nothing in `scripts/` may rewrite them.
 | `public/furniture/table-lamp.svg` | lamp |
 | `public/furniture/rug-oval.svg` | rug |
 | `public/furniture/bed.svg` | bed |
-| `public/furniture/coffee-table.svg` | table |
+| `public/furniture/coffee-table.svg` | coffee table |
 | `public/furniture/heart-stool.svg` | stool |
 
 ## Original generated art (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/)

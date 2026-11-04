@@ -43,10 +43,10 @@ test('the cloned strip is hidden from the screen reader and out of the tab order
 });
 
 test('the marquee skips the rows whose rendered url is a video file', () => {
-  const videoRow = photo('video', 'https://assets.mixkit.co/videos/preview/clip-33318-large.mp4');
+  const videoRow = photo('video', '/seed/video/cat-laser-480p.webm');
   const videoWithPoster: Photo = {
     ...videoRow,
-    thumbnailUrl: 'https://images.unsplash.com/photo-1.jpg'
+    thumbnailUrl: '/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg'
   };
   expect(marqueePhotos([photo('a'), videoRow]).map((p) => p.id)).toEqual(['a']);
   // a video with a real poster keeps its poster

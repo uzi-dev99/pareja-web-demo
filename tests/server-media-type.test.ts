@@ -31,25 +31,27 @@ const row = (filePath: string, originalName: string | null = null): PhotoRow => 
 });
 
 test('a photo row with a .mp4 file is a video, not an image', () => {
-  const photo = rowToPhoto(row('https://assets.mixkit.co/videos/preview/clip-33318-large.mp4'));
+  const photo = rowToPhoto(row('/seed/video/cat-laser-480p.webm'));
   expect(photo.mediaType).toBe('video');
 });
 
 test('a video row never hands the video file as its thumbnail', () => {
   // el .mp4 como thumbnailUrl es lo que dibujaba la tile rota en la
   // galeria, el collage secreto y el editor de fotos
-  const seeded = rowToPhoto(
-    row('https://assets.mixkit.co/videos/preview/mixkit-cat-looking-around-with-curiosity-33318-large.mp4')
-  );
+  const seeded = rowToPhoto(row('/seed/video/cat-laser-480p.webm'));
   expect(seeded.mediaType).toBe('video');
   expect(seeded.thumbnailUrl).not.toContain('.mp4');
-  // ponytail: el seed ya no trae videos (los de mixkit died: 403), asi
-  // que un video sin poster se queda sin miniatura (nunca el .mp4).
-  const withoutPoster = rowToPhoto(row('https://example.com/clip.mp4'));
+  expect(seeded.thumbnailUrl).not.toContain('.webm');
+  // ponytail: el video del seed tiene poster (content.ts), asi que la
+  // miniatura es el poster y no el archivo de video.
+  const withPoster = rowToPhoto(row('/seed/video/cat-laser-480p.webm', 'video-gato-puntero-laser'));
+  expect(withPoster.thumbnailUrl).toBe('/seed/video/cat-laser-480p.jpg');
+  // un video sin poster se queda sin miniatura (nunca el .mp4).
+  const withoutPoster = rowToPhoto(row('/uploads/clip.mp4'));
   expect(withoutPoster.thumbnailUrl).toBe('');
 });
 
 test('a photo row with an image file stays an image', () => {
   expect(rowToPhoto(row('/uploads/foto.jpg')).mediaType).toBe('image');
-  expect(rowToPhoto(row('https://images.unsplash.com/photo-1.jpg')).mediaType).toBe('image');
+  expect(rowToPhoto(row('/seed/photos/photo-1514888286974-6c03e2ca1dba.jpg')).mediaType).toBe('image');
 });

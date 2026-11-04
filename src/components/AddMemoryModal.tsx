@@ -114,7 +114,7 @@ export const AddMemoryModal: React.FC<AddMemoryModalProps> = ({
         ? images
         : [
             {
-              url: 'https://images.unsplash.com/photo-1518199266791-5375a83190b7?auto=format&fit=crop&w=1200&q=80',
+              url: '/seed/photos/photo-1518199266791-5375a83190b7.jpg',
               caption: 'Un nuevo capítulo juntos'
             }
           ],

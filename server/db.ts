@@ -170,6 +170,12 @@ function seedRows(): SeedRow[] {
  * - a row whose seed id is gone from content.ts is pruned (the orphan
  *   rows of the removed seed videos),
  * - a row the owner uploaded is never a seed row: it is never touched.
+ *
+ * VK-547: the seed media moved from the CDN to `public/seed/`. A DB
+ * seeded before that keeps the old hot-link in `file_path` (the rows
+ * are INSERT OR IGNORE), so the row is repointed at the local path.
+ * Only `file_path` moves: caption/month/year/tags/location are the
+ * owner's edits and stay untouched.
  */
 function syncSeeds(db: Database): void {
   const seeds = seedRows();
@@ -182,6 +188,9 @@ function syncSeeds(db: Database): void {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const del = db.prepare('DELETE FROM photos WHERE id = ?');
+  // ponytail: solo el path: el resto de la fila es del owner.
+  const repoint = db.prepare('UPDATE photos SET file_path = ? WHERE id = ?');
+  const current = db.prepare('SELECT file_path FROM photos WHERE id = ?');
   const rows = db
     .query("SELECT id FROM photos WHERE id LIKE 'seed-%'")
     .all() as { id: string }[];
@@ -189,6 +198,8 @@ function syncSeeds(db: Database): void {
   // ponytail: lo que entra nuevo en este arranque (para verlo en el log
   // del deploy: "el seed nuevo llegó a la base").
   const inserted = seeds.filter((s) => !rows.some((r) => r.id === s.id)).length;
+  // ponytail: las filas de seed que todavía apuntan al hot-link viejo.
+  let migrated = 0;
 
   // ponytail: una sola transaccion para todo el seed. Con un commit por
   // fila el arranque tardaba mas de 15 s en un disco lento (los tests de
@@ -209,6 +220,11 @@ function syncSeeds(db: Database): void {
         s.location,
         s.tags
       );
+      const row = current.get(s.id) as { file_path: string } | null;
+      if (row && /^https?:\/\//i.test(row.file_path)) {
+        repoint.run(s.filePath, s.id);
+        migrated += 1;
+      }
     }
     for (const id of stale) del.run(id);
   })();
@@ -218,6 +234,9 @@ function syncSeeds(db: Database): void {
   }
   if (inserted > 0) {
     console.log(`[db] Seeded ${inserted} new photos.`);
+  }
+  if (migrated > 0) {
+    console.log(`[db] Migrated ${migrated} seed rows to the local /seed/ path.`);
   }
 }
 

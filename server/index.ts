@@ -56,7 +56,8 @@ function readPhoto(id: string): PhotoRow | null {
 
 function deletePhotoRow(row: PhotoRow): void {
   db.query('DELETE FROM photos WHERE id = ?').run(row.id);
-  // ponytail: skip file deletion if it's an external URL (seed photos use https://).
+  // ponytail: solo se borra el archivo si vive en el volumen de uploads
+  // (el seed vive en public/seed/, no en disco).
   if (row.file_path.startsWith('/uploads/')) {
     const absPath = UPLOAD_DIR + row.file_path.replace('/uploads', '');
     unlink(absPath).catch(() => { /* file already gone, ignore */ });

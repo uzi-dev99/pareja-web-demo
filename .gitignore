@@ -10,6 +10,8 @@ coverage/
 # Local agent/tool caches
 .ponytail/
 .worktrees/
+.pi/
+.playwright-mcp/
 
 # Server runtime artifacts (when deployed)
 data/*.db
