@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Image as ImageIcon, MapPin, ZoomIn, Calendar, Hash, Sparkles, Heart, Video, Play, Upload, Trash2, Edit3, X } from 'lucide-react';
 import { Photo } from '../types';
 import { Lightbox } from './Lightbox';
-import { usePhotos } from '../hooks/usePhotos';
+import { type PhotosApi } from '../hooks/usePhotos';
 import { usePhotoUpload } from '../hooks/usePhotoUpload';
 import { EditPhotoModal } from './EditPhotoModal';
 import { buildPageWindow } from '../utils/pagination';
@@ -21,6 +21,10 @@ import {
 interface GalleryProps {
   initialMonthFilter?: string;
   isEditMode?: boolean;
+  // ponytail: la instancia compartida de usePhotos('public') la pasa
+  // App. Las mutaciones (subir / editar / borrar) salen de acá, así
+  // que la lista que ve el Hero y el Timeline cambia en el acto.
+  photosApi: PhotosApi;
 }
 
 // ponytail: the cumple photo used to live here as a synthetic
@@ -37,7 +41,7 @@ const PAGE_SIZE = 12;
 // espera detrás del "ver más".
 const TAG_LIMIT = 8;
 
-export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode = false }) => {
+export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode = false, photosApi }) => {
   // ponytail: filters are (a) upload month derived from created_at and (b) hashtag from photo.tags.
   // Both are combinable; cleared via the reset button below.
   const [activeMonth, setActiveMonth] = useState<string | null>(null); // YYYY-MM
@@ -56,9 +60,10 @@ export const Gallery: React.FC<GalleryProps> = ({ initialMonthFilter, isEditMode
   // con movimiento reducido (AC1/AC5).
   const [tiltOn, setTiltOn] = useState(false);
 
-  // ponytail: photos now come from the server. The first run seeds from content.ts;
-  // after that the API is the source of truth.
-  const { photos: apiPhotos, addPhotos, updatePhoto, deletePhoto, deleteAll } = usePhotos('public');
+  // ponytail: photos now come from the server (the shared instance App
+  // owns): the first run seeds from content.ts; after that the API is the
+  // source of truth.
+  const { photos: apiPhotos, addPhotos, updatePhoto, deletePhoto, deleteAll } = photosApi;
 
   // ponytail: la inclinación 3D sigue al puntero sólo con mouse o
   // trackpad (`pointer: coarse` = táctil, sin tilt) y nunca con

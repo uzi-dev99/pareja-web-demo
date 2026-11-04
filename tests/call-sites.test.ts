@@ -27,6 +27,7 @@ import { PetdexCatAvatar } from '../src/components/PetdexCatAvatar';
 import { CatTamagotchiBox } from '../src/components/CatTamagotchiBox';
 import { findElements, mount as baseMount, textOf } from './helpers/render';
 import { stubDom, type DomStub } from './helpers/dom';
+import { fakePhotosApi } from './helpers/photos';
 
 let dom: DomStub | null = null;
 const mounted: { unmount(): void }[] = [];
@@ -67,10 +68,16 @@ test('M1: "Ver fotos de {mes}" usa las fotos de la galería (la DB), no el seed'
   dom = stubDom();
   // the DB has one photo of Septiembre and none of Agosto: the seed has
   // photos of Agosto and none of Septiembre.
-  serve([photo({ month: 'Septiembre', year: 2026 })]);
+  // ponytail: la lista la pasa App (la misma instancia que usa la
+  // galería) — el Timeline no la pide por su cuenta, así que la API
+  // responde VACÍO a propósito: si volviera a su propio fetch, el
+  // botón de Septiembre no aparecería.
+  serve([]);
+  const galleryPhotos = [photo({ month: 'Septiembre', year: 2026 })];
 
   const opened: string[] = [];
   const m = mount(Timeline as never, {
+    photos: galleryPhotos,
     onOpenGalleryMonth: (month: string) => opened.push(month)
   });
   await m.settle();
@@ -98,9 +105,11 @@ test('M1: "Ver fotos de {mes}" usa las fotos de la galería (la DB), no el seed'
 
 test('L1: la tecla de un botón de la tarjeta no abre el visor', async () => {
   dom = stubDom();
-  serve([photo()]);
 
-  const m = mount(Gallery as never, { isEditMode: true });
+  const m = mount(Gallery as never, {
+    photosApi: fakePhotosApi({ photos: [photo()] as never }),
+    isEditMode: true
+  });
   await m.settle();
 
   const card = findElements(
@@ -150,9 +159,16 @@ test('L5: el filtro que manda el timeline se aplica aunque las fotos lleguen tar
   dom = stubDom();
   // the photos arrive after the first render: the filter value ("Copo")
   // is a hashtag, but with no photos loaded it looks like a month.
-  serve([photo({ tags: ['Copo'] })]);
-
-  const m = mount(Gallery as never, { initialMonthFilter: 'Copo' });
+  const m = mount(Gallery as never, {
+    photosApi: fakePhotosApi(),
+    initialMonthFilter: 'Copo'
+  });
+  await m.settle();
+  // the owner (App) re-renders with the photos that just arrived
+  m.render({
+    photosApi: fakePhotosApi({ photos: [photo({ tags: ['Copo'] })] as never }),
+    initialMonthFilter: 'Copo'
+  });
   await m.settle();
   const html = m.html();
 
@@ -167,9 +183,19 @@ test('L1: el filtro se aplica una vez por valor: la foto que elige el visitante 
     photo({ id: 'a', month: 'Septiembre', tags: ['Copo'] }),
     photo({ id: 'b', month: 'Septiembre', tags: ['Nube'] })
   ];
-  dom.fetchJson((url) => (url.includes('bucket=public') ? photos : []));
+  // ponytail: la lista la pasa App; el guardián de la galería la usa
+  // para saber cuándo hay que re-aplicar el filtro del timeline.
+  const photosApi = fakePhotosApi({
+    photos: photos as never,
+    updatePhoto: async (id: string, patch: Record<string, unknown>) =>
+      ({ id, ...patch }) as never
+  });
 
-  const m = mount(Gallery as never, { initialMonthFilter: 'Septiembre', isEditMode: true });
+  const m = mount(Gallery as never, {
+    photosApi,
+    initialMonthFilter: 'Septiembre',
+    isEditMode: true
+  });
   await m.settle();
   // the month filter of the timeline: two photos
   expect(showing(m.html())).toBe('2');
@@ -199,6 +225,13 @@ test('L1: el filtro se aplica una vez por valor: la foto que elige el visitante 
   )[0];
   expect(modal).toBeDefined();
   modal.props.onSave({ caption: 'otra foto' });
+  await m.settle();
+  // the owner (App) re-renders with the list the shared instance refreshed
+  m.render({
+    photosApi: fakePhotosApi({ photos: photos as never }),
+    initialMonthFilter: 'Septiembre',
+    isEditMode: true
+  });
   await m.settle();
 
   // the tag the visitor picked is still there (the filter was applied
@@ -288,7 +321,7 @@ test('L1: el hero pausa la cinta cuando sale de pantalla', async () => {
   const paused: number[] = [];
   const m = mount(
     Hero as never,
-    {},
+    { photos: [] },
     {
       createNodeMock: (element) => {
         if (element?.type !== 'video') return undefined;
@@ -314,9 +347,13 @@ test('L1: el hero pausa la cinta cuando sale de pantalla', async () => {
 
   const observer = dom.observers[dom.observers.length - 1];
   expect(observer).toBeDefined();
-  observer.trigger(false);
+  // ponytail: el observer falso sólo dispara si algo fue observado: si
+  // el Hero deja de observar el video (`io.observe(video)`), la cinta
+  // no se pausa más y este test se pone rojo.
+  expect(observer.elements).toHaveLength(1);
+  expect(observer.trigger(false)).toBe(true);
   expect(paused.length).toBe(1);
-  observer.trigger(true);
+  expect(observer.trigger(true)).toBe(true);
   expect(played.length).toBe(1);
 });
 

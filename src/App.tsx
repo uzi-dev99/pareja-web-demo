@@ -21,10 +21,17 @@ import { SecretEffectsManager } from './components/SecretEffectsManager';
 import { CatTamagotchiBox } from './components/CatTamagotchiBox';
 import { ClickWhisperOverlay } from './components/ClickWhisper';
 import { MusicPlayerFab } from './components/MusicPlayerFab';
+import { usePhotos } from './hooks/usePhotos';
 import { audioPlayer } from './utils/audioPlayer';
 import { audioEngine } from './utils/audioSynth';
 
 export default function App() {
+  // ponytail: UNA sola lista de fotos públicas, acá arriba. El Hero,
+  // el Timeline y la galería la reciben por props: antes cada uno
+  // hacía su propio fetch del bucket público y por eso el botón "Ver
+  // fotos de {mes}" del timeline no se enteraba de una subida o de un
+  // borrado en la galería (recién cambiaba con un F5).
+  const publicPhotos = usePhotos('public');
   const [secretModalOpen, setSecretModalOpen] = useState(false);
   const [musicLibraryOpen, setMusicLibraryOpen] = useState(false);
   const [galleryFilterMonth, setGalleryFilterMonth] = useState<string>('Todos');
@@ -166,7 +173,7 @@ export default function App() {
       </AnimatePresence>
 
       {/* 1. Hero Section ("Nuestro Álbum", Wide Multi-Photo Spread) */}
-      <Hero />
+      <Hero photos={publicPhotos.photos} />
 
       {/* 2. Santuario de los 4 Michis (Tamagotchi Box Interactivo: Canela, Trufa, Copo y Nube) */}
       <CatTamagotchiBox />
@@ -178,6 +185,7 @@ export default function App() {
 
       {/* 4. Interactive Monthly Timeline (Feb 2026 to Sept 16, 2026, Wide Two-Sided Layout & Birthday Photo Slot) */}
       <Timeline
+        photos={publicPhotos.photos}
         onOpenGalleryMonth={handleOpenGalleryMonth}
         isEditMode={isEditMode}
       />
@@ -186,7 +194,11 @@ export default function App() {
       <SecretLetter isEditMode={isEditMode} />
 
       {/* 6. Masonry Photo Gallery */}
-      <Gallery initialMonthFilter={galleryFilterMonth} isEditMode={isEditMode} />
+      <Gallery
+        photosApi={publicPhotos}
+        initialMonthFilter={galleryFilterMonth}
+        isEditMode={isEditMode}
+      />
 
       {/* 6. Secret Effects & Edit Mode Manager (Commands: editar, amor, beso, canela, trufa, copo, nube, magia, cumple, abrazo, next) */}
       <SecretEffectsManager

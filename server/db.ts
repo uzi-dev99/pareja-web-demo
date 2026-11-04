@@ -97,39 +97,83 @@ export function getDb(): Database {
  */
 export function initDatabase(db: Database): void {
   db.exec(SCHEMA);
-  seedIfEmpty(db);
-  pruneStaleSeeds(db);
+  syncSeeds(db);
+}
+
+interface SeedRow {
+  id: string;
+  bucket: 'public' | 'secret';
+  position: number | null;
+  filePath: string;
+  originalName: string;
+  caption: string;
+  month: string | null;
+  year: number | null;
+  dateStr: string | null;
+  location: string;
+  tags: string;
 }
 
 /**
- * ponytail: a seed row whose file is no longer in content.ts stayed in
- * the seeded DBs as an orphan (the two mixkit videos were removed): the
- * gallery showed a broken tile and the LAN DB needed a manual DELETE.
- * The prune only touches rows whose id is a seed id (a row the owner
- * uploaded is never one) and only when the file is not in content.ts
- * anymore: the secret photos are seeded by position, so a row that only
- * moved inside content.ts keeps its file and survives.
+ * ponytail: the seed rows with the id they have in the DB.
+ *
+ * The id is the identity (`seed-<id>` for the public photos,
+ * `seed-secret-<pos>` for the secret collage, which is seeded by
+ * position). The URL is NOT the identity: a change of URL in content.ts
+ * used to delete the row on every deployed DB (with the owner's edits
+ * on it) and re-insert it, so the owner lost their edits on every
+ * deploy and a new seed photo never reached an existing DB.
  */
-function pruneStaleSeeds(db: Database): void {
-  const live = new Set([
-    ...seedPhotos.map((p) => p.filePath),
-    ...seedSecretPhotos.map((s) => s.url)
-  ]);
-  const rows = db
-    .query("SELECT id, file_path FROM photos WHERE id LIKE 'seed-%'")
-    .all() as { id: string; file_path: string }[];
-  const stale = rows.filter((r) => !live.has(r.file_path)).map((r) => r.id);
-  if (stale.length === 0) return;
-  const del = db.prepare('DELETE FROM photos WHERE id = ?');
-  db.transaction(() => {
-    for (const id of stale) del.run(id);
-  })();
-  console.log(`[db] Pruned ${stale.length} stale seed rows.`);
+function seedRows(): SeedRow[] {
+  const rows: SeedRow[] = seedPhotos.map((p) => ({
+    id: `seed-${p.id}`,
+    bucket: 'public',
+    position: null,
+    filePath: p.filePath,
+    originalName: p.id,
+    caption: p.caption,
+    month: p.month,
+    year: p.year,
+    dateStr: p.dateStr ?? null,
+    location: p.location ?? '',
+    tags: JSON.stringify(p.tags ?? [])
+  }));
+
+  let pos = 1;
+  for (const s of seedSecretPhotos) {
+    rows.push({
+      id: `seed-secret-${pos}`,
+      bucket: 'secret',
+      position: pos,
+      filePath: s.url,
+      originalName: `secret-${pos}`,
+      caption: s.caption,
+      month: null,
+      year: null,
+      dateStr: null,
+      location: '',
+      tags: '[]'
+    });
+    pos += 1;
+  }
+
+  return rows;
 }
 
-function seedIfEmpty(db: Database): void {
-  const row = db.query('SELECT COUNT(*) as n FROM photos').get() as { n: number };
-  if (row.n > 0) return;
+/**
+ * ponytail: upsert-if-missing + prune, both keyed by the seed id.
+ *
+ * - a seed id that is already there is NOT touched (the owner's edits
+ *   survive a deploy, even if content.ts changed the URL),
+ * - a seed id that is new in content.ts is inserted (the new video
+ *   reaches the DBs that were seeded before),
+ * - a row whose seed id is gone from content.ts is pruned (the orphan
+ *   rows of the removed seed videos),
+ * - a row the owner uploaded is never a seed row: it is never touched.
+ */
+function syncSeeds(db: Database): void {
+  const seeds = seedRows();
+  const live = new Set(seeds.map((s) => s.id));
 
   const insert = db.prepare(`
     INSERT OR IGNORE INTO photos
@@ -137,49 +181,44 @@ function seedIfEmpty(db: Database): void {
        caption, month, year, date_str, location, tags)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
+  const del = db.prepare('DELETE FROM photos WHERE id = ?');
+  const rows = db
+    .query("SELECT id FROM photos WHERE id LIKE 'seed-%'")
+    .all() as { id: string }[];
+  const stale = rows.filter((r) => !live.has(r.id)).map((r) => r.id);
+  // ponytail: lo que entra nuevo en este arranque (para verlo en el log
+  // del deploy: "el seed nuevo llegó a la base").
+  const inserted = seeds.filter((s) => !rows.some((r) => r.id === s.id)).length;
 
   // ponytail: una sola transaccion para todo el seed. Con un commit por
   // fila el arranque tardaba mas de 15 s en un disco lento (los tests de
   // smoke se caian por timeout esperando /api/health).
   db.transaction(() => {
-    for (const p of seedPhotos) {
+    for (const s of seeds) {
       insert.run(
-        `seed-${p.id}`,
-        'public',
+        s.id,
+        s.bucket,
         null,
-        null,
-        p.filePath,
-        p.id,
-        p.caption,
-        p.month,
-        p.year,
-        p.dateStr ?? null,
-        p.location ?? '',
-        JSON.stringify(p.tags ?? [])
-      );
-    }
-
-    let pos = 1;
-    for (const s of seedSecretPhotos) {
-      insert.run(
-        `seed-secret-${pos}`,
-        'secret',
-        null,
-        pos,
-        s.url,
-        `secret-${pos}`,
+        s.position,
+        s.filePath,
+        s.originalName,
         s.caption,
-        null,
-        null,
-        null,
-        '',
-        '[]'
+        s.month,
+        s.year,
+        s.dateStr,
+        s.location,
+        s.tags
       );
-      pos += 1;
     }
+    for (const id of stale) del.run(id);
   })();
 
-  console.log(`[db] Seeded ${seedPhotos.length} public + ${seedSecretPhotos.length} secret photos.`);
+  if (stale.length > 0) {
+    console.log(`[db] Pruned ${stale.length} stale seed rows.`);
+  }
+  if (inserted > 0) {
+    console.log(`[db] Seeded ${inserted} new photos.`);
+  }
 }
 
 // ponytail: the thumbnail path is a convention derived from the photo id

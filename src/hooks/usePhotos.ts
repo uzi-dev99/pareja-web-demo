@@ -212,3 +212,8 @@ export function usePhotos(bucket: PhotoBucket, opts: UsePhotosOptions = {}) {
 
   return { ...state, refresh, addPhotos, updatePhoto, deletePhoto, deleteAll };
 }
+
+// ponytail: the shape of the hook's result, so a parent can own ONE
+// instance and hand it down (App owns the public bucket: the Hero, the
+// Timeline and the Gallery read the same list).
+export type PhotosApi = ReturnType<typeof usePhotos>;

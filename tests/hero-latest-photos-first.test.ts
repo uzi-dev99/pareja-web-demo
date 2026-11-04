@@ -33,14 +33,15 @@ test('Hero sorts the carousel by upload timestamp, newest first', () => {
   );
 });
 
-test('the carousel renders the sorted array, not the raw hook output', () => {
+test('the carousel renders the sorted array, not the raw list', () => {
   const start = HERO.indexOf('const allMedia');
   expect(start).toBeGreaterThan(-1);
   const line = HERO.slice(start, HERO.indexOf('\n', start));
-  expect(line).toMatch(/apiPhotos/);
+  // ponytail: la lista llega por props (la de App) y el Hero la ordena
+  expect(line).toMatch(/\.\.\.photos\]/);
   expect(line).toMatch(/\.sort\(/);
-  // the pre-sort alias `const allMedia = apiPhotos;` must be gone
-  expect(line).not.toMatch(/=\s*apiPhotos\s*;/);
+  // the pre-sort alias `const allMedia = photos;` must be gone
+  expect(line).not.toMatch(/=\s*photos\s*;/);
 });
 
 test('the shared public-bucket query stays ascending (Gallery groups by month)', () => {

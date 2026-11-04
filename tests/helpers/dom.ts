@@ -15,7 +15,8 @@ export interface StubbedObserver {
   callback: (entries: any[], observer: any) => void;
   options: any;
   elements: any[];
-  trigger(isIntersecting: boolean): void;
+  /** Fires the callback ONLY if something was observed. Returns whether it fired. */
+  trigger(isIntersecting: boolean): boolean;
   disconnect(): void;
 }
 
@@ -35,7 +36,9 @@ export function stubDom(opts: { reducedMotion?: boolean } = {}): DomStub {
     IntersectionObserver: g.IntersectionObserver,
     requestAnimationFrame: g.requestAnimationFrame,
     cancelAnimationFrame: g.cancelAnimationFrame,
-    fetch: g.fetch
+    fetch: g.fetch,
+    confirm: g.confirm,
+    alert: g.alert
   };
 
   const observers: StubbedObserver[] = [];
@@ -58,11 +61,16 @@ export function stubDom(opts: { reducedMotion?: boolean } = {}): DomStub {
     disconnect() {
       this.elements = [];
     }
-    trigger(isIntersecting: boolean) {
+    // ponytail: an observer only reports the elements it observes.
+    // A component that forgets `io.observe(el)` gets no callback, so a
+    // test that expects one goes red (the old stub fired anyway).
+    trigger(isIntersecting: boolean): boolean {
+      if (this.elements.length === 0) return false;
       this.callback(
         [{ isIntersecting, target: this.elements[0] }],
         this
       );
+      return true;
     }
   }
 
@@ -86,12 +94,19 @@ export function stubDom(opts: { reducedMotion?: boolean } = {}): DomStub {
     innerWidth: 1280,
     innerHeight: 800,
     devicePixelRatio: 1,
+    scrollTo() {},
+    scrollIntoView() {},
     setTimeout: (fn: any, ms?: number) => setTimeout(fn, ms),
     clearTimeout: (id: any) => clearTimeout(id),
     setInterval: (fn: any, ms?: number) => setInterval(fn, ms),
     clearInterval: (id: any) => clearInterval(id),
     // the edit-mode flows ask for the EDIT_TOKEN with a prompt
-    prompt: () => 'token-de-prueba'
+    prompt: () => 'token-de-prueba',
+    // the gallery asks before deleting
+    confirm: () => true,
+    alert: () => {},
+    // the app disables the browser scroll restoration
+    history: { scrollRestoration: 'auto' }
   };
 
   const store = new Map<string, string>();
@@ -112,13 +127,26 @@ export function stubDom(opts: { reducedMotion?: boolean } = {}): DomStub {
     getElementById: () => null,
     querySelector: () => null,
     querySelectorAll: () => [],
-    createElement: () => ({
-      style: {},
-      setAttribute() {},
-      appendChild() {},
-      addEventListener() {},
-      removeEventListener() {}
-    }),
+    createElement: (tag: string) =>
+      tag === 'audio'
+        ? {
+            src: '',
+            preload: '',
+            volume: 1,
+            error: null,
+            play: () => Promise.resolve(),
+            pause() {},
+            load() {},
+            addEventListener() {},
+            removeEventListener() {}
+          }
+        : {
+            style: {},
+            setAttribute() {},
+            appendChild() {},
+            addEventListener() {},
+            removeEventListener() {}
+          },
     body: { appendChild() {}, style: {} },
     documentElement: { style: {} }
   };
@@ -126,6 +154,10 @@ export function stubDom(opts: { reducedMotion?: boolean } = {}): DomStub {
   g.IntersectionObserver = FakeIntersectionObserver;
   g.requestAnimationFrame = (cb: (t: number) => void) => setTimeout(() => cb(0), 16);
   g.cancelAnimationFrame = (id: any) => clearTimeout(id);
+  // the components call the bare global confirm/alert (in the browser
+  // they are window.confirm/window.alert)
+  g.confirm = () => true;
+  g.alert = () => {};
 
   return {
     observers,

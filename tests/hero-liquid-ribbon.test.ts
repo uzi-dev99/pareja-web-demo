@@ -39,7 +39,7 @@ const read = (p: string) =>
 
 const CTA_SRC = read('src/components/CtaSection.tsx');
 
-const heroHtml = renderToStaticMarkup(React.createElement(Hero, {}));
+const heroHtml = renderToStaticMarkup(React.createElement(Hero, { photos: [] }));
 const ctaHtml = renderToStaticMarkup(
   React.createElement(CtaSection, { onOpenSecretModal: () => {} })
 );
@@ -227,7 +227,7 @@ test('the hero honours prefers-reduced-motion', () => {
     g.window = globalThis;
     g.matchMedia = (q: string) => ({ matches: q.includes('reduce') });
     expect(prefersReducedMotion()).toBe(true);
-    const html = renderToStaticMarkup(React.createElement(Hero, {}));
+    const html = renderToStaticMarkup(React.createElement(Hero, { photos: [] }));
     expect(html).not.toMatch(/autoPlay/);
     expect(html).toMatch(/poster=/);
   } finally {

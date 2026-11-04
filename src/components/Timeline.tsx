@@ -14,7 +14,7 @@ import {
   Plus,
   Quote
 } from 'lucide-react';
-import { timelineEvents, photos } from '../data/content';
+import { timelineEvents, photos as seedPhotos } from '../data/content';
 import { Photo, TimelineEvent } from '../types';
 import { TimelineCarousel } from './TimelineCarousel';
 import { usePhotos } from '../hooks/usePhotos';
@@ -26,6 +26,10 @@ import { MONTHS_PER_PAGE, hasMonthPhotos, monthKey, monthOrdinal, visibleTimelin
 interface TimelineProps {
   onOpenGalleryMonth?: (month: string) => void;
   isEditMode?: boolean;
+  // ponytail: la lista de fotos la pasa App (la misma que ve la
+  // galería): el botón "Ver fotos de {mes}" se actualiza en el acto
+  // cuando en la galería se sube, edita o borra una foto.
+  photos: Photo[];
 }
 
 // ponytail: birthday photo persistence used to live in localStorage
@@ -38,7 +42,8 @@ const STORAGE_KEY_CUSTOM_EVENTS = 'pareja_custom_timeline_events';
 
 export const Timeline: React.FC<TimelineProps> = ({
   onOpenGalleryMonth,
-  isEditMode = false
+  isEditMode = false,
+  photos
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [visibleMonths, setVisibleMonths] = useState(MONTHS_PER_PAGE);
@@ -50,7 +55,8 @@ export const Timeline: React.FC<TimelineProps> = ({
   // borrar las fotos de fábrica el botón llevaba a "Mostrando 0
   // recuerdos". Sin fallback al seed: si la galería no tiene fotos, el
   // botón no aparece (la galería tampoco las tiene).
-  const { photos: galleryPhotos } = usePhotos('public');
+  // La lista llega por props desde App (la misma instancia que usa la
+  // galería), así que un cambio en la galería se ve acá sin recargar.
   // ponytail: carousel overrides fetched from API. Key = monthAnchor
   // for month recaps, and eventAnchor for the cumple (kind === 'event').
   // Same server-side carousel bucket either way.
@@ -256,7 +262,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   }))
                 : event.imageId
                   ? (() => {
-                      const p = photos.find((x) => x.id === event.imageId);
+                      const p = seedPhotos.find((x) => x.id === event.imageId);
                       return p ? [{
                         id: event.imageId,
                         filePath: p.filePath,
@@ -375,7 +381,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                             con su filtro de mes (AC3). Sólo si el mes tiene
                             fotos en la galería (las de la DB): si no, la
                             galería responde "Mostrando 0 recuerdos". */}
-                        {hasMonthPhotos(event.month, event.year, galleryPhotos) && (
+                        {hasMonthPhotos(event.month, event.year, photos) && (
                           <button
                             type="button"
                             onClick={() => onOpenGalleryMonth?.(event.month)}

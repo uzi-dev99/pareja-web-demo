@@ -73,7 +73,7 @@ test('the keyboard compliment lands on the slide, not on the corner of the scree
 });
 
 test('the fixed navbar has a background so it does not overlap the content below', () => {
-  const html = renderToStaticMarkup(React.createElement(Hero, {}));
+  const html = renderToStaticMarkup(React.createElement(Hero, { photos: [] }));
   const header = html.match(/<header[^>]*>/)?.[0] ?? '';
   expect(header).toContain('bg-gradient-to-b');
 });

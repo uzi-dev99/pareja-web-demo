@@ -18,6 +18,8 @@
 import { expect, test } from 'bun:test';
 import { Database } from 'bun:sqlite';
 import { initDatabase } from '../server/db';
+import { photos as seedPhotos } from '../src/data/content';
+import type { Photo } from '../src/types';
 
 const insert = (db: Database, id: string, filePath: string, originalName: string) =>
   db
@@ -61,6 +63,66 @@ test('el seed poda las filas viejas y nunca toca una foto del usuario', () => {
     expect(after).toContain('foto-del-usuario');
     // y las filas de seed que siguen en content.ts también
     expect(after).toContain('seed-photo-canela-1');
+  } finally {
+    db.close();
+  }
+});
+
+test('un cambio de URL en content.ts NO borra la fila de seed (ni las ediciones del owner)', () => {
+  // ponytail: la base es en memoria: la prueba no toca NINGÚN archivo de
+  // base (ni la del repo, ni la de un despliegue).
+  const db = new Database(':memory:');
+  try {
+    initDatabase(db);
+
+    // el owner edita la foto del seed (y en content.ts su URL cambia)
+    db.query(
+      "UPDATE photos SET caption = 'editada por el owner', file_path = 'https://ejemplo/otra-url.jpg' WHERE id = 'seed-photo-canela-1'"
+    ).run();
+
+    // el servidor arranca otra vez (es lo que pasa en cada deploy)
+    initDatabase(db);
+
+    const row = db
+      .query("SELECT caption, file_path FROM photos WHERE id = 'seed-photo-canela-1'")
+      .get() as { caption: string; file_path: string } | null;
+
+    // la fila sigue ahí, con la edición del owner y con su URL
+    expect(row).not.toBeNull();
+    expect(row!.caption).toBe('editada por el owner');
+    expect(row!.file_path).toBe('https://ejemplo/otra-url.jpg');
+  } finally {
+    db.close();
+  }
+});
+
+test('un seed nuevo en content.ts entra en una base ya sembrada', () => {
+  const db = new Database(':memory:');
+  const nuevo: Photo = {
+    id: 'foto-nueva-del-seed',
+    filePath: 'https://ejemplo/nueva.jpg',
+    caption: 'Una foto nueva del seed',
+    month: 'Septiembre',
+    year: 2026,
+    tags: ['Seed']
+  };
+  try {
+    initDatabase(db);
+    expect(ids(db)).not.toContain('seed-foto-nueva-del-seed');
+
+    // aparece una foto nueva en content.ts (el seed del video nuevo)
+    seedPhotos.push(nuevo);
+    try {
+      initDatabase(db);
+
+      const row = db
+        .query("SELECT file_path FROM photos WHERE id = 'seed-foto-nueva-del-seed'")
+        .get() as { file_path: string } | null;
+      expect(row).not.toBeNull();
+      expect(row!.file_path).toBe('https://ejemplo/nueva.jpg');
+    } finally {
+      seedPhotos.pop();
+    }
   } finally {
     db.close();
   }

@@ -4,7 +4,6 @@ import { Heart, Sparkles, ArrowDown } from 'lucide-react';
 import { siteMeta, photos as demoPhotos } from '../data/content';
 import { audioEngine } from '../utils/audioSynth';
 import { triggerClickWhisper } from './ClickWhisper';
-import { usePhotos } from '../hooks/usePhotos';
 import { ImageMarquee } from './ImageMarquee';
 import { isVideoUrl, prefersReducedMotion } from '../utils/carousel3d';
 import type { Photo } from '../types';
@@ -184,7 +183,13 @@ const SiteNav: React.FC = () => (
   </header>
 );
 
-export const Hero: React.FC = () => {
+// ponytail: la lista de fotos la pasa App (una sola instancia para
+// todo el sitio): el Hero no vuelve a pedirla.
+interface HeroProps {
+  photos: Photo[];
+}
+
+export const Hero: React.FC<HeroProps> = ({ photos }) => {
   const [activeCompliment, setActiveCompliment] = useState<FloatingPhotoCompliment | null>(null);
   // ponytail: the OS setting, read once at mount.
   const [reduced] = useState(prefersReducedMotion);
@@ -217,20 +222,17 @@ export const Hero: React.FC = () => {
     };
   }, [reduced]);
 
-  // ponytail: pull from the same API the Gallery uses so uploads show up here live.
-  // (was: `photos` from content.ts — became stale the moment you uploaded the first photo.)
-  const { photos: apiPhotos } = usePhotos('public');
   // ponytail: newest upload first. The server answers `bucket=public` with
   // `ORDER BY created_at ASC` because the Gallery groups by month and wants
   // the natural order, so a fresh "catgada" otherwise lands at the very end
   // of the ribbon. Sorted here, in the Hero only, to leave the Gallery
   // untouched. `Array.sort` is stable, so seeded photos sharing a
   // `created_at` keep their relative order after the real uploads.
-  const allMedia = [...apiPhotos].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+  const allMedia = [...photos].sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
   // ponytail: the API is the source of truth (an upload shows up live);
   // the static demo list is the fallback so the hero is never empty
   // while the server is starting or offline.
-  const photos = marqueePhotos(allMedia.length ? allMedia : demoPhotos);
+  const marquee = marqueePhotos(allMedia.length ? allMedia : demoPhotos);
 
   const handlePhotoClick = (e: React.MouseEvent<HTMLElement>) => {
     audioEngine.playSparkle();
@@ -372,7 +374,7 @@ export const Hero: React.FC = () => {
 
         {/* Infinite, drag-enabled photo marquee with the prompt's curved masks */}
         <div className="relative z-10 w-full mt-10">
-          <ImageMarquee photos={photos} onPhotoClick={handlePhotoClick} />
+          <ImageMarquee photos={marquee} onPhotoClick={handlePhotoClick} />
         </div>
 
         {/* Bottom section */}

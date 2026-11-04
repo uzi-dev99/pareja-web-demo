@@ -256,8 +256,9 @@ export interface Mounted<P> {
   html(): string;
   /** The current React element tree (props included: handlers, styles). */
   tree(): Any;
-  /** Re-render now (state changed outside of an effect). */
-  render(): void;
+  /** Re-render now (state changed outside of an effect).
+   *  With `next` the component gets NEW props (the parent re-rendered). */
+  render(next?: any): void;
   /** Let the pending promises/effects settle and re-render until quiet. */
   settle(rounds?: number): Promise<void>;
   /** Run the effect cleanups. */
@@ -273,21 +274,28 @@ export function mount<P>(
   opts: { createNodeMock?: (element: Any) => Any } = {}
 ): Mounted<P> {
   const rt = new Runtime(opts.createNodeMock);
-  rt.pass(Component, props);
+  // ponytail: `current` follows the last props: `render(next)` is the
+  // parent re-rendering with new props, and the re-renders that `settle`
+  // does later must keep them (not the ones of the first mount).
+  let current = props;
+  rt.pass(Component, current);
   return {
     html: () => renderToStaticMarkup(rt.tree),
     tree: () => rt.tree,
-    render: () => rt.pass(Component, props),
+    render: (next?: any) => {
+      if (next !== undefined) current = next;
+      rt.pass(Component, current);
+    },
     settle: async (rounds = 25) => {
       for (let i = 0; i < rounds; i++) {
         await new Promise((resolve) => setTimeout(resolve, 0));
         if (rt.dirty) {
-          rt.pass(Component, props);
+          rt.pass(Component, current);
           continue;
         }
         await Promise.resolve();
         if (rt.dirty) {
-          rt.pass(Component, props);
+          rt.pass(Component, current);
           continue;
         }
         return;
